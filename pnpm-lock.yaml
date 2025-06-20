@@ -31,9 +31,6 @@ importers:
       mongoose:
         specifier: ^8.15.0
         version: 8.16.0
-      morgan:
-        specifier: ^1.10.0
-        version: 1.10.0
       passport:
         specifier: ^0.7.0
         version: 0.7.0
@@ -852,13 +849,6 @@ packages:
         integrity: sha512-ir1UPr3dkwexU7FdV8qBBbNDRUhMmIekYMFZfi+C/sLNnRESKPl23nB9b2pltqfOQNnGzsDdId90AEtG5tCx4A==,
       }
     engines: { node: '>=6.0.0' }
-
-  basic-auth@2.0.1:
-    resolution:
-      {
-        integrity: sha512-NF+epuEdnUYVlGuhaxbbq+dvJttwLnGY+YixlXlME5KpQ5W3CnXA5cVTneY3SPbPDRkcjMbifrwmFYcClgOZeg==,
-      }
-    engines: { node: '>= 0.8' }
 
   binary-extensions@2.3.0:
     resolution:
@@ -2366,13 +2356,6 @@ packages:
       }
     engines: { node: '>=16.20.1' }
 
-  morgan@1.10.0:
-    resolution:
-      {
-        integrity: sha512-AbegBVI4sh6El+1gNwvD5YIck7nSA36weD7xvIxG4in80j/UoK8AEGaWnnz8v1GxonMCltmlNs5ZKbGvl9b1XQ==,
-      }
-    engines: { node: '>= 0.8.0' }
-
   mpath@0.9.0:
     resolution:
       {
@@ -2458,13 +2441,6 @@ packages:
         integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==,
       }
     engines: { node: '>= 0.4' }
-
-  on-finished@2.3.0:
-    resolution:
-      {
-        integrity: sha512-ikqdkGAAyf/X/gPhXGvfgAytDZtDbr+bkNUJ0N9h5MI/dmdgCs3l6hoHrcUv41sRKew3jIwrp4qQDXiK99Utww==,
-      }
-    engines: { node: '>= 0.8' }
 
   on-finished@2.4.1:
     resolution:
@@ -2828,12 +2804,6 @@ packages:
     resolution:
       {
         integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==,
-      }
-
-  safe-buffer@5.1.2:
-    resolution:
-      {
-        integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==,
       }
 
   safe-buffer@5.2.1:
@@ -4003,10 +3973,6 @@ snapshots:
 
   base64url@3.0.1: {}
 
-  basic-auth@2.0.1:
-    dependencies:
-      safe-buffer: 5.1.2
-
   binary-extensions@2.3.0: {}
 
   bn.js@4.12.2: {}
@@ -5060,16 +5026,6 @@ snapshots:
       - socks
       - supports-color
 
-  morgan@1.10.0:
-    dependencies:
-      basic-auth: 2.0.1
-      debug: 2.6.9
-      depd: 2.0.0
-      on-finished: 2.3.0
-      on-headers: 1.0.2
-    transitivePeerDependencies:
-      - supports-color
-
   mpath@0.9.0: {}
 
   mquery@5.0.0:
@@ -5112,10 +5068,6 @@ snapshots:
   oauth@0.10.2: {}
 
   object-inspect@1.13.4: {}
-
-  on-finished@2.3.0:
-    dependencies:
-      ee-first: 1.1.1
 
   on-finished@2.4.1:
     dependencies:
@@ -5301,8 +5253,6 @@ snapshots:
   run-parallel@1.2.0:
     dependencies:
       queue-microtask: 1.2.3
-
-  safe-buffer@5.1.2: {}
 
   safe-buffer@5.2.1: {}
 
