@@ -16,7 +16,7 @@ const reviewSchema = new mongoose.Schema(
 			type: Number,
 			required: true,
 			min: 1,
-			max: 10,
+			max: 5, // Did we want to go rating 1-5 or 1-10?
 		},
 		message: {
 			type: String,
@@ -24,7 +24,7 @@ const reviewSchema = new mongoose.Schema(
 			trim: true,
 		},
 	},
-	{ timestamps: true }
+	{ timestamps: true } // Create and Last edit = 6 items
 );
 
 // If a user wants to change their review, this ensures it is updating the xisting record

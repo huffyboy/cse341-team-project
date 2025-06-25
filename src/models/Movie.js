@@ -11,18 +11,19 @@ const movieSchema = new mongoose.Schema(
 			type: Number,
 			required: true,
 		},
-		rating: String,     // PG-13, R
-		genre: [String],    // Array of strings for multiple genres
+		rating: String, // PG-13, PG, etc
+		genre: [String], // Array of strings for multiple genres
 		length: {
-			type: Number,   // Keeping it stored as an Int
+			type: Number, // Should be in minutes
 			min: 0,
 		},
 		description: {
 			type: String,
 			trim: true,
 		},
-		director: [String],
-		posterUrl: {        // ADDED THIS as it was not included in the proposal and realized we should have poster image
+		director: String, // Could be multiple directors??
+		posterUrl: {
+			// ADDED THIS as it was not included in the proposal and realized we should have poster image
 			type: String,
 			trim: true,
 		},
