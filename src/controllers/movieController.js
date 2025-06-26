@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
-// import Movie from '../models/Movie.js';
+import Movie from '../models/Movie.js';
+import Review from '../models/Review.js';
 
 // GET /api/v1/movies
 // Get all movies from the global catalog
@@ -27,38 +28,115 @@ const getMovieById = asyncHandler(async (req, res) => {
 // POST /movies
 // Create a new movie in the global catalog
 const createMovie = asyncHandler(async (req, res) => {
-	// const { title, year, rating, genre, length, description, director } = req.body;
-	// Logic to create a new movie
+	const {
+		title,
+		year,
+		rating,
+		genre,
+		length,
+		description,
+		director,
+		posterUrl,
+	} = req.body;
+
+	// Check if movie with same title and year already exists
+	const existingMovie = await Movie.findOne({ title, year });
+	if (existingMovie) {
+		res.status(409);
+		throw new Error('Movie with this title and year already exists');
+	}
+
+	// Create new movie document
+	const newMovie = new Movie({
+		title,
+		year,
+		rating,
+		genre,
+		length,
+		description,
+		director,
+		posterUrl,
+	});
+
+	// Save to database
+	const savedMovie = await newMovie.save();
 
 	res.status(201).json({
-		message: 'Movie created (stub)',
-		data: req.body,
+		success: true,
+		message: 'Movie created successfully',
+		data: savedMovie,
 	});
 });
 
 // PUT /movies/:movieId
 // Update a movie in the global catalog
 const updateMovie = asyncHandler(async (req, res) => {
-	// const { movieId } = req.params;
-	// const updateData = req.body;
-	// Logic to update a movie
+	const { movieId } = req.params;
+	const updateData = req.body;
+
+	// Check if movie exists before updating
+	const existingMovie = await Movie.findById(movieId);
+	if (!existingMovie) {
+		res.status(404);
+		throw new Error('Movie not found');
+	}
+
+	// If title and year are being updated, check for duplicates
+	if (updateData.title && updateData.year) {
+		const duplicateMovie = await Movie.findOne({
+			title: updateData.title,
+			year: updateData.year,
+			_id: { $ne: movieId }, // Exclude current movie from duplicate check
+		});
+		if (duplicateMovie) {
+			res.status(409);
+			throw new Error('Movie with this title and year already exists');
+		}
+	}
+
+	// Find movie by ID and update it
+	const updatedMovie = await Movie.findByIdAndUpdate(movieId, updateData, {
+		new: true, // Return the updated document
+		runValidators: true, // Run schema validators on update
+	});
 
 	res.status(200).json({
-		message: 'Movie updated (stub)',
-		movieId: req.params.movieId,
-		data: req.body,
+		success: true,
+		message: 'Movie updated successfully',
+		data: updatedMovie,
 	});
 });
 
 // DELETE /movies/:movieId
 // Delete a movie from the global catalog
 const deleteMovie = asyncHandler(async (req, res) => {
-	// const { movieId } = req.params;
-	// Logic to delete a movie
+	const { movieId } = req.params;
 
-	res
-		.status(200)
-		.json({ message: 'Movie deleted (stub)', movieId: req.params.movieId });
+	// Check if movie exists before deleting
+	const existingMovie = await Movie.findById(movieId);
+	if (!existingMovie) {
+		res.status(404);
+		throw new Error('Movie not found');
+	}
+
+	// Check for related reviews before deletion (optional requirement)
+	const relatedReviews = await Review.find({ movie: movieId });
+	if (relatedReviews.length > 0) {
+		res.status(400);
+		throw new Error('Cannot delete movie with existing reviews');
+	}
+
+	// Find and delete the movie
+	const deletedMovie = await Movie.findByIdAndDelete(movieId);
+
+	res.status(200).json({
+		success: true,
+		message: 'Movie deleted successfully',
+		data: {
+			id: deletedMovie._id,
+			title: deletedMovie.title,
+		},
+	});
 });
 
 export { getAllMovies, getMovieById, createMovie, updateMovie, deleteMovie };

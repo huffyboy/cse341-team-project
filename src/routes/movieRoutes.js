@@ -112,6 +112,16 @@ const router = express.Router();
  *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ *       409:
+ *         description: Movie already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Movie with this title and year already exists"
  */
 router
 	.route('/')
@@ -202,6 +212,16 @@ router
  *         $ref: '#/components/responses/UnauthorizedError'
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
+ *       409:
+ *         description: Movie already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Movie with this title and year already exists"
  *   delete:
  *     summary: Delete movie
  *     description: Delete a movie from the database (requires authentication)
@@ -223,11 +243,33 @@ router
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
  *                   example: "Movie deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Deleted movie ID
+ *                     title:
+ *                       type: string
+ *                       description: Deleted movie title
  *       400:
- *         $ref: '#/components/responses/ValidationError'
+ *         description: Validation error or business logic error
+ *         content:
+ *           application/json:
+ *             oneOf:
+ *               - $ref: '#/components/responses/ValidationError'
+ *               - schema:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Cannot delete movie with existing reviews"
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       404:
