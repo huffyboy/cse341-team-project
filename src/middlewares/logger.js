@@ -5,7 +5,7 @@
 const simpleLogger = (req, res, next) => {
 	// Override res.end to log the response
 	const originalEnd = res.end;
-	res.end = function (chunk, encoding) {
+	res.end = function loggingEnd(chunk, encoding) {
 		console.log(`${req.method} ${req.path} - ${res.statusCode}`);
 		originalEnd.call(this, chunk, encoding);
 	};
