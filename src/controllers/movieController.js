@@ -28,16 +28,6 @@ const getAllMovies = asyncHandler(async (req, res) => {
 	});
 });
 
-// const getAllMovies = asyncHandler(async (req, res) => {
-// 	// const { genre, year, director, titleSearch } = req.query; // example
-// 	// Logic to fetch all movies with filters
-
-// 	res.status(200).json({
-// 		message: 'List of all movies (stub)',
-// 		filters: req.query,
-// 	});
-// });
-
 // GET /api/v1/movies/:movieId
 // Get a single movie by ID from the global catalog
 const getMovieById = asyncHandler(async (req, res) => {
