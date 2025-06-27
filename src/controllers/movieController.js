@@ -17,7 +17,16 @@ const getAllMovies = asyncHandler(async (req, res) => {
 // GET /api/v1/movies/:movieId
 // Get a single movie by ID from the global catalog
 const getMovieById = asyncHandler(async (req, res) => {
-	// const { movieId } = req.params;
+	const { movieId } = req.params;
+	try {
+		const movie = await Movie.getMovieById(movieId);
+		if (!movie) {
+		  return res.status(404).json({ message: 'Movie not found' });
+		}
+		return res.json(movie);
+	  } catch (err){
+		return res.status(400).json({ message: 'Error retrieving movie' });
+	  };
 
 	res.status(200).json({
 		message: 'Single movie details (stub)',
