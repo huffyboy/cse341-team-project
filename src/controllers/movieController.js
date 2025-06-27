@@ -5,24 +5,42 @@ import Review from '../models/Review.js';
 // GET /api/v1/movies
 // Get all movies from the global catalog
 const getAllMovies = asyncHandler(async (req, res) => {
-	// const { genre, year, director, titleSearch } = req.query; // example
-	// Logic to fetch all movies with filters
+	const { genre, year, director, title } = req.query;
+
+	// Build dynamic filter
+	const filter = {};
+
+	if (genre) filter.genre = genre;
+	if (year) filter.year = Number(year); // Ensure year is numeric
+	if (director) filter.director = director;
+
+	// Case-insensitive partial match for title
+	if (title) {
+		filter.title = { $regex: title, $options: 'i' };
+	}
+
+	const movies = await Movie.find(filter);
 
 	res.status(200).json({
-		message: 'List of all movies (stub)',
-		filters: req.query,
+		success: true,
+		count: movies.length,
+		data: movies,
 	});
 });
 
 // GET /api/v1/movies/:movieId
 // Get a single movie by ID from the global catalog
 const getMovieById = asyncHandler(async (req, res) => {
-	// const { movieId } = req.params;
-
-	res.status(200).json({
-		message: 'Single movie details (stub)',
-		movieId: req.params.movieId,
-	});
+	const { movieId } = req.params;
+	try {
+		const movie = await Movie.findById(movieId);
+		if (!movie) {
+			return res.status(404).json({ message: 'Movie not found' });
+		}
+		return res.status(200).json(movie);
+	} catch (err) {
+		return res.status(400).json({ message: 'Error retrieving movie' });
+	}
 });
 
 // POST /movies
