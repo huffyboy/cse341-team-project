@@ -2,7 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Movie from '../models/Movie.js';
 import Review from '../models/Review.js';
 
-// GET /api/v1/movies
+// GET /movies
 // Get all movies from the global catalog
 const getAllMovies = asyncHandler(async (req, res) => {
 	const { genre, year, director, title } = req.query;
@@ -28,7 +28,7 @@ const getAllMovies = asyncHandler(async (req, res) => {
 	});
 });
 
-// GET /api/v1/movies/:movieId
+// GET /movies/:movieId
 // Get a single movie by ID from the global catalog
 const getMovieById = asyncHandler(async (req, res) => {
 	const { movieId } = req.params;

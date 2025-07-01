@@ -1,24 +1,17 @@
 import asyncHandler from 'express-async-handler';
 
-// Stubbed out only
+// This Middleware ensures that the user is authenticated
 const ensureAuthenticated = asyncHandler(async (req, res, next) => {
-	// Once implemented, we'll check for valid session/JWT here
-	if (req.isAuthenticated && req.isAuthenticated()) {
+	// This isAuthenticated is a Method built into the Passport library and returns True if authenticated
+	if (req.isAuthenticated()) {
 		return next();
 	}
 
-	console.log('Auth Middleware: User not authenticated (placeholder)');
-	// res.status(401).json({ message: 'Not authorized, no token or session' });
-
-	if (!req.user) {
-		console.warn('Auth Middleware: Mocking req.user for stub development.'); // Just mocking a user for the stubs til we add OAuth
-		req.user = {
-			_id: 'mockUserId123',
-			name: 'Mock User',
-			githubId: 'mockGithubId',
-		};
-	}
-	return next();
+	// 401 for unauthorized accecss
+	return res.status(401).json({
+		message:
+			'Unauthorized: You must be logged in to Github to access this resource.',
+	});
 });
 
 export default ensureAuthenticated;
