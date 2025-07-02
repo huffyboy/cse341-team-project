@@ -1,7 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Review from '../models/Review.js';
 import Movie from '../models/Movie.js';
-// import User from '../models/User.js';
+import User from '../models/User.js';
 
 // USERS
 
@@ -21,10 +21,21 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // DELETE /users/me
 // Delete current authenticated user's account
 const deleteUserAccount = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
+	const userId = req.user._id;
+
+	// Find and delete the user
+	const deletedUser = await User.findByIdAndDelete(userId);
+
+	if (!deletedUser) {
+		res.status(404);
+		throw new Error('User not found');
+	}
+
+	// Also delete all reviews by this user
+	await Review.deleteMany({ user: userId });
 
 	res.status(200).json({
-		message: 'User account deleted',
+		message: 'User account deleted successfully',
 		userId: req.user?._id,
 	});
 });
