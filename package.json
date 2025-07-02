@@ -10,8 +10,8 @@
 		"lint": "eslint . --ext .js",
 		"lint:fix": "eslint . --ext .js --fix",
 		"format": "prettier --write \"src/**/*.js\"",
-		"test": "jest",
-		"test:watch": "jest --watch",
+		"test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+		"test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
 		"check": "pnpm run format && pnpm run lint:fix"
 	},
 	"keywords": [],
@@ -40,6 +40,7 @@
 		"eslint-plugin-prettier": "^5.5.0",
 		"jest": "^29.7.0",
 		"nodemon": "^3.1.10",
-		"prettier": "^3.6.0"
+		"prettier": "^3.6.0",
+		"supertest": "^7.0.0"
 	}
 }
