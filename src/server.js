@@ -56,11 +56,30 @@ app.use('/users', userRoutes);
 app.use('/movies', movieRoutes);
 app.use('/reviews', reviewRoutes);
 
-// Just generic landing page info
+// Simplified landing page with just a few links
 app.get('/', (req, res) => {
-	res.send(
-		'Welcome to My Movie Vault API! Docs at /api-docs. Login via /auth/github'
-	);
+	const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Movie Vault API</title>
+  <style>
+    body { font-family: system-ui; margin: 0; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 400px; margin: 100px auto; text-align: center; }
+    h1 { color: #333; margin-bottom: 30px; }
+    a { display: block; padding: 12px; margin: 8px 0; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+    a:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>My Movie Vault API</h1>
+    <a href="/api-docs">API Documentation</a>
+    <a href="/auth/github">Login with GitHub</a>
+  </div>
+</body>
+</html>`;
+	res.send(html);
 });
 
 // Swagger
