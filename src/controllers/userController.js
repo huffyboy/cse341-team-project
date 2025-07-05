@@ -8,14 +8,27 @@ import User from '../models/User.js';
 // PUT /users/me
 // Update current authenticated user's profile
 const updateUserProfile = asyncHandler(async (req, res) => {
-	// const userId = req.user._id; // From 'ensureAuthenticated' middleware
-	// const { name, email } = req.body; // Adjust as needed
+	try {
+		const userId = req.user._id; // From 'ensureAuthenticated' middleware
+		const updates = {
+			name: req.body.name,
+			email: req.body.email,
+		};
 
-	res.status(200).json({
-		message: 'User profile updated',
-		userId: req.user?._id,
-		data: req.body,
-	});
+		const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+			new: true,
+			runValidators: true,
+		});
+
+		if (!updatedUser) {
+			return res.status(404).json({ message: 'User not found' });
+		}
+
+		res.json({ message: 'Profile updated successfully', user: updatedUser });
+	} catch (err) {
+		console.error('Update error:', err);
+		res.status(500).json({ message: 'Server error' });
+	}
 });
 
 // DELETE /users/me
