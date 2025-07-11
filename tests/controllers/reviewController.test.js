@@ -1,54 +1,481 @@
-// Unit tests for review controller
-// TODO: Implement when review controller functions are available
+// Unit tests for review controller - Testing behavior and scenarios
+import mockingoose from 'mockingoose';
+import Review from '../../src/models/Review.js';
+import {
+	updateReview,
+	deleteReview,
+	getMovieReviews,
+} from '../../src/controllers/reviewController.js';
 
-describe('Review Controller', () => {
-	describe('getReviews', () => {
-		test.skip('should return all reviews', async () => {
-			// TODO: Implement when getReviews function is available
+describe('Review Controller - Behavior and Scenario Testing', () => {
+	// Helper function to create mock request/response objects
+	const createMockReqRes = (paramsData = {}, bodyData = {}) => {
+		const req = {
+			params: paramsData,
+			body: bodyData,
+		};
+
+		const res = {
+			statusCode: null,
+			data: null,
+			status(code) {
+				this.statusCode = code;
+				return this;
+			},
+			json(data) {
+				this.data = data;
+				return this;
+			},
+		};
+
+		return { req, res };
+	};
+
+	// Reset all mocks before each test
+	beforeEach(() => {
+		mockingoose.resetAll();
+	});
+
+	describe('updateReview - Success Scenarios', () => {
+		it('should update existing review successfully', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 4, message: 'Updated review message' }
+			);
+
+			// Arrange: Specify what the database will return
+			const existingReview = {
+				_id: 'review123',
+				user: 'user123',
+				movie: 'movie123',
+				rating: 3,
+				message: 'Old review message',
+				save: () =>
+					Promise.resolve({
+						_id: 'review123',
+						user: 'user123',
+						movie: 'movie123',
+						rating: 4,
+						message: 'Updated review message',
+					}),
+			};
+			mockingoose(Review).toReturn(existingReview, 'findById');
+
+			// Act: Call the function
+			await updateReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.rating).toBe(4);
+			expect(res.data.message).toBe('Updated review message');
 		});
 
-		test.skip('should handle database errors', async () => {
-			// TODO: Implement when getReviews function is available
+		it('should handle rating change from 1 to 5', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 5, message: 'Excellent movie!' }
+			);
+
+			// Arrange: Specify what the database will return
+			const existingReview = {
+				_id: 'review123',
+				user: 'user123',
+				movie: 'movie123',
+				rating: 1,
+				message: 'Terrible movie',
+				save: () =>
+					Promise.resolve({
+						_id: 'review123',
+						user: 'user123',
+						movie: 'movie123',
+						rating: 5,
+						message: 'Excellent movie!',
+					}),
+			};
+			mockingoose(Review).toReturn(existingReview, 'findById');
+
+			// Act: Call the function
+			await updateReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.rating).toBe(5);
+			expect(res.data.message).toBe('Excellent movie!');
 		});
 	});
 
-	describe('getReviewById', () => {
-		test.skip('should return a specific review by ID', async () => {
-			// TODO: Implement when getReviewById function is available
+	describe('updateReview - Error Scenarios', () => {
+		it('should return 404 when review not found', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'nonexistent' },
+				{ rating: 4, message: 'Test message' }
+			);
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(null, 'findById');
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow('Review not found.');
+			expect(res.statusCode).toBe(404);
 		});
 
-		test.skip('should return 404 for non-existent review', async () => {
-			// TODO: Implement when getReviewById function is available
+		it('should return 400 when rating is missing', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ message: 'Test message' }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Rating and message are required for updating a review.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when message is missing', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 4 }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Rating and message are required for updating a review.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when rating is less than 1', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 0, message: 'Test message' }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Rating must be a number between 1 and 5.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when rating is greater than 5', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 6, message: 'Test message' }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Rating must be a number between 1 and 5.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when rating is not a number', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 'invalid', message: 'Test message' }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Rating must be a number between 1 and 5.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when message is empty', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 4, message: '' }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Review message cannot be empty.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when message is only whitespace', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 4, message: '   ' }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Review message cannot be empty.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
+		it('should return 400 when message is not a string', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 4, message: 123 }
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(updateReview(req, res)).rejects.toThrow(
+				'Review message cannot be empty.'
+			);
+			expect(res.statusCode).toBe(400);
 		});
 	});
 
-	describe('createReview', () => {
-		test.skip('should create a new review', async () => {
-			// TODO: Implement when createReview function is available
+	describe('updateReview - Edge Cases', () => {
+		it('should handle special characters in message', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 5, message: 'Amazing movie! 🎬 100% recommend! 💯' }
+			);
+
+			// Arrange: Specify what the database will return
+			const existingReview = {
+				_id: 'review123',
+				user: 'user123',
+				movie: 'movie123',
+				rating: 3,
+				message: 'Old message',
+				save: () =>
+					Promise.resolve({
+						_id: 'review123',
+						user: 'user123',
+						movie: 'movie123',
+						rating: 5,
+						message: 'Amazing movie! 🎬 100% recommend! 💯',
+					}),
+			};
+			mockingoose(Review).toReturn(existingReview, 'findById');
+
+			// Act: Call the function
+			await updateReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe('Amazing movie! 🎬 100% recommend! 💯');
 		});
 
-		test.skip('should validate review data', async () => {
-			// TODO: Implement when createReview function is available
+		it('should handle very long message', async () => {
+			// Arrange: Setup test with request and response
+			const longMessage = 'A'.repeat(1000);
+			const { req, res } = createMockReqRes(
+				{ reviewId: 'review123' },
+				{ rating: 4, message: longMessage }
+			);
+
+			// Arrange: Specify what the database will return
+			const existingReview = {
+				_id: 'review123',
+				user: 'user123',
+				movie: 'movie123',
+				rating: 3,
+				message: 'Old message',
+				save: () =>
+					Promise.resolve({
+						_id: 'review123',
+						user: 'user123',
+						movie: 'movie123',
+						rating: 4,
+						message: longMessage,
+					}),
+			};
+			mockingoose(Review).toReturn(existingReview, 'findById');
+
+			// Act: Call the function
+			await updateReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe(longMessage);
 		});
 	});
 
-	describe('updateReview', () => {
-		test.skip('should update an existing review', async () => {
-			// TODO: Implement when updateReview function is available
+	describe('deleteReview - Success Scenarios', () => {
+		it('should delete review successfully', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ reviewId: 'review123' });
+
+			// Arrange: Specify what the database will return
+			const deletedReview = {
+				_id: 'review123',
+				user: 'user123',
+				movie: 'movie123',
+				rating: 4,
+				message: 'Deleted review',
+			};
+			mockingoose(Review).toReturn(deletedReview, 'findByIdAndDelete');
+
+			// Act: Call the function
+			await deleteReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe('Review deleted successfully');
+			expect(res.data.reviewId).toBe('review123');
 		});
 
-		test.skip('should return 404 for non-existent review', async () => {
-			// TODO: Implement when updateReview function is available
+		it('should handle deletion of different review IDs', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ reviewId: 'review456' });
+
+			// Arrange: Specify what the database will return
+			const deletedReview = {
+				_id: 'review456',
+				user: 'user456',
+				movie: 'movie456',
+				rating: 5,
+				message: 'Another deleted review',
+			};
+			mockingoose(Review).toReturn(deletedReview, 'findByIdAndDelete');
+
+			// Act: Call the function
+			await deleteReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe('Review deleted successfully');
+			expect(res.data.reviewId).toBe('review456');
 		});
 	});
 
-	describe('deleteReview', () => {
-		test.skip('should delete a review', async () => {
-			// TODO: Implement when deleteReview function is available
+	describe('deleteReview - Error Scenarios', () => {
+		it('should return 404 when review not found', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ reviewId: 'nonexistent' });
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(null, 'findByIdAndDelete');
+
+			// Act & Assert: Verify error handling
+			await expect(deleteReview(req, res)).rejects.toThrow('Review not found.');
+			expect(res.statusCode).toBe(404);
 		});
 
-		test.skip('should return 404 for non-existent review', async () => {
-			// TODO: Implement when deleteReview function is available
+		it('should handle database errors during deletion', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ reviewId: 'review123' });
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(
+				new Error('Database connection failed'),
+				'findByIdAndDelete'
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(deleteReview(req, res)).rejects.toThrow(
+				'Database connection failed'
+			);
+		});
+	});
+
+	describe('deleteReview - Edge Cases', () => {
+		it('should handle invalid review ID format', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ reviewId: 'invalid-id-format' });
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(null, 'findByIdAndDelete');
+
+			// Act & Assert: Verify error handling
+			await expect(deleteReview(req, res)).rejects.toThrow('Review not found.');
+			expect(res.statusCode).toBe(404);
+		});
+
+		it('should handle empty review ID', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ reviewId: '' });
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(null, 'findByIdAndDelete');
+
+			// Act & Assert: Verify error handling
+			await expect(deleteReview(req, res)).rejects.toThrow('Review not found.');
+			expect(res.statusCode).toBe(404);
+		});
+	});
+
+	describe('getMovieReviews - Success Scenarios', () => {
+		test.skip('should return all reviews for a specific movie', async () => {
+			// TODO: Kathryn - Uncomment when getMovieReviews function is fully implemented
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ movieId: 'movie123' });
+
+			// Arrange: Specify what the database will return
+			const mockReviews = [
+				{
+					_id: 'review1',
+					user: 'user123',
+					movie: 'movie123',
+					rating: 5,
+					message: 'Amazing movie!',
+					createdAt: new Date('2023-01-15'),
+				},
+				{
+					_id: 'review2',
+					user: 'user456',
+					movie: 'movie123',
+					rating: 4,
+					message: 'Great film!',
+					createdAt: new Date('2023-02-20'),
+				},
+			];
+			mockingoose(Review).toReturn(mockReviews, 'find');
+
+			// Act: Call the function
+			await getMovieReviews(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe('List of reviews for a movie');
+			expect(res.data.movieId).toBe('movie123');
+		});
+
+		test.skip('should return empty array when no reviews exist', async () => {
+			// TODO: Kathryn - Uncomment when getMovieReviews function is fully implemented
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ movieId: 'movie456' });
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn([], 'find');
+
+			// Act: Call the function
+			await getMovieReviews(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe('List of reviews for a movie');
+			expect(res.data.movieId).toBe('movie456');
+		});
+
+		test.skip('should handle database errors gracefully', async () => {
+			// TODO: Kathryn - Uncomment when getMovieReviews function is fully implemented
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes({ movieId: 'movie123' });
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(
+				new Error('Database connection failed'),
+				'find'
+			);
+
+			// Act & Assert: Verify error handling
+			await expect(getMovieReviews(req, res)).rejects.toThrow(
+				'Database connection failed'
+			);
 		});
 	});
 });
