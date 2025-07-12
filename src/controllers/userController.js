@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Review from '../models/Review.js';
 import Movie from '../models/Movie.js';
 import User from '../models/User.js';
+import UserMovie from '../models/UserMovie.js';
 
 // USERS
 
@@ -44,8 +45,9 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
 		throw new Error('User not found');
 	}
 
-	// Also delete all reviews by this user
+	// Also delete all reviews and movie statuses by this user
 	await Review.deleteMany({ user: userId });
+	await UserMovie.deleteMany({ user: userId });
 
 	res.status(200).json({
 		message: 'User account deleted successfully',
@@ -132,12 +134,27 @@ const deleteUserMovie = asyncHandler(async (req, res) => {
 // GET /users/me/reviews
 // Get all reviews by the authenticated user
 const getUserReviews = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
-	// Logic to fetch ALL reviews by current user
+	const userId = req.user._id;
+	const { movieId } = req.query;
+
+	// Set our filters
+	const filter = {
+		user: userId,
+	};
+	if (movieId) {
+		filter.movie = movieId;
+	}
+
+	// Fetch reviews by the current user
+	const reviews = await Review.find(filter)
+		.populate('movie', 'title year genre director posterUrl')
+		.sort({ createdAt: -1 }); // Sort by newest first
 
 	res.status(200).json({
 		message: "User's reviews list",
-		userId: req.user?._id,
+		userId,
+		count: reviews.length,
+		reviews,
 	});
 });
 

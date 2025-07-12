@@ -57,11 +57,12 @@ src/
 - `_id`: ObjectId
 - `title`: String
 - `year`: Number
-- `rating`: Number
-- `genre`: String
-- `length`: Number
+- `rating`: String (PG-13, PG, etc.)
+- `genre`: Array of Strings
+- `length`: Number (in minutes)
 - `description`: String
 - `director`: String
+- `posterUrl`: String
 - `createdAt`: Date (Mongoose timestamp)
 - `updatedAt`: Date (Mongoose timestamp)
 
@@ -77,9 +78,9 @@ src/
 #### Reviews
 
 - `_id`: ObjectId
-- `movieId`: ObjectId (reference to Movies)
-- `userId`: ObjectId (reference to Users)
-- `rating`: Number
+- `movie`: ObjectId (reference to Movies)
+- `user`: ObjectId (reference to Users)
+- `rating`: Number (1-5 scale)
 - `message`: String
 - `createdAt`: Date (Mongoose timestamp)
 - `updatedAt`: Date (Mongoose timestamp)
@@ -111,25 +112,36 @@ The API uses GitHub OAuth 2.0 for secure authentication:
 
 - `GET /movies` - List all movies (with filtering)
 - `GET /movies/:movieId` - Get specific movie
-- `POST /movies` - Add new movie
-- `PUT /movies/:movieId` - Update movie
-- `DELETE /movies/:movieId` - Delete movie
+- `POST /movies` - Add new movie (requires authentication)
+- `PUT /movies/:movieId` - Update movie (requires authentication)
+- `DELETE /movies/:movieId` - Delete movie (requires authentication)
 
 ### User Movies
 
-- `GET /user/movies` - Get user's movie collection (with filtering)
-- `POST /user/movies` - Add movie to user's collection
-- `GET /user/movies/:movieId` - Get specific user movie
-- `PUT /user/movies/:movieId` - Update user movie status
-- `DELETE /user/movies/:movieId` - Remove movie from collection
+- `GET /users/me/movies` - Get user's movie collection (with filtering)
+- `POST /users/me/movies` - Add movie to user's collection
+- `GET /users/me/movies/:movieId` - Get specific user movie
+- `PUT /users/me/movies/:movieId` - Update user movie status
+- `DELETE /users/me/movies/:movieId` - Remove movie from collection
 
-### Reviews
+### User Reviews
 
-- `GET /movies/:movieId/reviews` - Get reviews for a movie
-- `POST /movies/:movieId/reviews` - Add review to movie
-- `GET /user/reviews` - Get user's reviews
-- `PUT /reviews/:reviewId` - Update review
-- `DELETE /reviews/:reviewId` - Delete review
+- `GET /users/me/reviews` - Get all reviews by the authenticated user
+- `GET /users/me/movies/:movieId/review` - Get user's review for a specific movie
+- `POST /users/me/movies/:movieId/review` - Create a review for a movie
+- `PUT /users/me/movies/:movieId/review` - Update user's review for a movie
+- `DELETE /users/me/movies/:movieId/review` - Delete user's review for a movie
+
+### Movie Reviews (Administrative)
+
+- `GET /movies/:movieId/reviews` - Get all reviews for a specific movie
+- `PUT /movies/:movieId/reviews` - Update any review for a movie (administrative)
+- `DELETE /movies/:movieId/reviews` - Delete any review for a movie (administrative)
+
+### Direct Review Management (Administrative)
+
+- `PUT /reviews/:reviewId` - Update any review by ID (administrative)
+- `DELETE /reviews/:reviewId` - Delete any review by ID (administrative)
 
 ## Getting Started
 

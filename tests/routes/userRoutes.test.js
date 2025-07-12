@@ -1,68 +1,96 @@
-// Unit tests for user routes
-describe('User Routes', () => {
-	describe('GET /api/users', () => {
-		test.skip('should return all users', () => {
-			// TODO: Implement when getAllUsers route is added
-		});
-	});
+// Integration tests for user routes using supertest
+import request from 'supertest';
+import express from 'express';
+import userRoutes from '../../src/routes/userRoutes.js';
 
-	describe('GET /api/users/:id', () => {
-		test.skip('should return user by ID', () => {
-			// TODO: Implement when getUserById route is added
-		});
-	});
+// Create test app
+const app = express();
+app.use(express.json());
+app.use('/users', userRoutes);
 
-	describe('POST /api/users', () => {
-		test.skip('should create new user', () => {
-			// TODO: Implement when createUser route is added
-		});
-	});
+describe('User Routes - Integration Tests', () => {
+	describe('PUT /users/me', () => {
+		test('should update user profile with 200 status', async () => {
+			// Arrange: Profile update data
+			const profileData = {
+				name: 'Updated Name',
+				email: 'updated@example.com',
+			};
 
-	describe('PUT /api/users/:id', () => {
-		test.skip('should update user', () => {
-			// TODO: Implement when updateUser function is fully tested
+			// Act: Make HTTP request to update profile
+			const response = await request(app)
+				.put('/users/me')
+				.send(profileData)
+				.expect(200);
+
+			// Assert: Verify successful update
+			expect(response.status).toBe(200);
+			expect(response.body).toHaveProperty('message');
+			expect(response.body).toHaveProperty('user');
+			expect(response.body.message).toBe('Profile updated successfully');
+		});
+
+		test('should return 404 when user not found', async () => {
+			// Arrange: Profile update data
+			const profileData = {
+				name: 'Updated Name',
+			};
+
+			// Act: Make HTTP request with non-existent user
+			const response = await request(app)
+				.put('/users/me')
+				.send(profileData)
+				.expect(404);
+
+			// Assert: Verify error response
+			expect(response.status).toBe(404);
+			expect(response.body).toHaveProperty('message');
 		});
 	});
 
 	describe('DELETE /users/me', () => {
-		test('should delete user account successfully', () => {
-			// Mock route behavior
-			const mockResponse = {
-				status: 200,
-				body: {
-					message: 'User account deleted successfully',
-					userId: 'user123',
-				},
-			};
+		test('should delete user account with 200 status', async () => {
+			// Act: Make HTTP request to delete account
+			const response = await request(app).delete('/users/me').expect(200);
 
-			expect(mockResponse.status).toBe(200);
-			expect(mockResponse.body).toHaveProperty('message');
-			expect(mockResponse.body.message).toBe(
-				'User account deleted successfully'
-			);
-			expect(mockResponse.body).toHaveProperty('userId');
+			// Assert: Verify successful deletion
+			expect(response.status).toBe(200);
+			expect(response.body).toHaveProperty('message');
+			expect(response.body).toHaveProperty('userId');
+			expect(response.body.message).toBe('User account deleted successfully');
 		});
 
-		test('should return 401 when not authenticated', () => {
-			// Mock route behavior for unauthenticated request
-			const mockResponse = {
-				status: 401,
-				body: { message: 'Unauthorized' },
-			};
+		test('should return 404 when user not found', async () => {
+			// Act: Make HTTP request with non-existent user
+			const response = await request(app).delete('/users/me').expect(404);
 
-			expect(mockResponse.status).toBe(401);
-			expect(mockResponse.body).toHaveProperty('message');
+			// Assert: Verify error response
+			expect(response.status).toBe(404);
+			expect(response.body).toHaveProperty('message');
 		});
+	});
 
-		test('should return 404 when user not found', () => {
-			// Mock route behavior for user not found
-			const mockResponse = {
-				status: 404,
-				body: { message: 'User not found' },
-			};
+	describe('GET /users/me/movies', () => {
+		test.skip('should return user movie collection with 200 status', async () => {
+			// TODO: Implement when getUserMovies function is fully implemented
+		});
+	});
 
-			expect(mockResponse.status).toBe(404);
-			expect(mockResponse.body).toHaveProperty('message');
+	describe('POST /users/me/movies', () => {
+		test.skip('should add movie to user collection with 201 status', async () => {
+			// TODO: Implement when addUserMovie function is fully implemented
+		});
+	});
+
+	describe('GET /users/me/movies/:movieId', () => {
+		test.skip('should return specific user movie with 200 status', async () => {
+			// TODO: Implement when getSingleUserMovie function is fully implemented
+		});
+	});
+
+	describe('GET /users/me/movies/:movieId/review', () => {
+		test.skip('should return user review for specific movie with 200 status', async () => {
+			// TODO: Implement when getUserMovieReview function is fully implemented
 		});
 	});
 });

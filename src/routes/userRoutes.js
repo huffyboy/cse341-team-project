@@ -241,6 +241,9 @@ router
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - rating
+ *               - message
  *             properties:
  *               rating:
  *                 type: number
@@ -286,7 +289,7 @@ router
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Review deleted successfully"
+ *                   example: "Review successfully deleted"
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       404:
