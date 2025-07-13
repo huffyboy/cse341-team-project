@@ -102,31 +102,65 @@ const getSingleUserMovie = asyncHandler(async (req, res) => {
 // PUT /users/me/movies/:movieId
 // Update a movie in the authenticated user's collection
 const updateUserMovie = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
-	// const { movieId } = req.params;
-	// const { status, userRating, notes } = req.body;
+	const userId = req.user._id;
+	const { movieId } = req.params;
+	const { status } = req.body;
 	// Logic to update user's movie entry
+	const validStatuses = ['planned_to_watch', 'watching', 'watched', 'dropped'];
+	if (!validStatuses.includes(status)) {
+		return res.status(400).json({ message: 'Invalid status value' });
+	}
+	try {
+		const updated = await UserMovie.findOneAndUpdate(
+			{ user: userId, movie: movieId },
+			{ status },
+			{ new: true }
+		);
+		if (!updated) {
+			return res
+				.status(404)
+				.json({ message: 'Movie not found in your collection' });
+		}
 
-	res.status(200).json({
-		message: "User's movie entry updated",
-		userId: req.user?._id,
-		movieId: req.params.movieId,
-		data: req.body,
-	});
+		res.status(200).json({
+			message: "User's movie entry updated",
+			userId: req.user?._id,
+			movieId: req.params.movieId,
+			userMovie: updated,
+		});
+	} catch (err) {
+		console.error('Error updating movie status:', err);
+		res.status(500).json({ message: 'Server error' });
+	}
 });
 
 // DELETE /users/me/movies/:movieId
 // Remove a movie from the authenticated user's collection
 const deleteUserMovie = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
-	// const { movieId } = req.params;
+	const userId = req.user._id;
+	const { movieId } = req.params;
 	// Logic to remove movie from user's collection
+	try {
+		const deleted = await UserMovie.findOneAndDelete({
+			user: userId,
+			movie: movieId,
+		});
 
-	res.status(200).json({
-		message: "Movie removed from user's collection",
-		userId: req.user?._id,
-		movieId: req.params.movieId,
-	});
+		if (!deleted) {
+			return res.status(200).json({
+				message: "Movie removed from user's collection",
+				userId: req.user?._id,
+				movieId: req.params.movieId,
+			});
+		}
+
+		res.json({ message: 'Movie removed from your collection' });
+	} catch (err) {
+		console.error('Error deleting movie:', err);
+		res.status(500).json({ message: 'Server error' });
+	}
+
+	r;
 });
 
 // USER REVIEW SPECIFIC

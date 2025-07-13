@@ -7,13 +7,23 @@ import Review from '../models/Review.js';
 // GET movies/:movieId/reviews
 // Get all reviews for a specific movie
 const getMovieReviews = asyncHandler(async (req, res) => {
-	// const { movieId } = req.params;
+	const { movieId } = req.params;
 	// Logic to fetch all reviews for a movie
+	try {
+		const reviews = await Review.find({ movie: movieId })
+			.populate('user', 'username') // only populate user's username
+			.sort({ createdAt: -1 }); // newest reviews first
 
-	res.status(200).json({
-		message: 'List of reviews for a movie',
-		movieId: req.params.movieId,
-	});
+		res.status(200).json({
+			message: "Movie's reviews list",
+			movieId,
+			count: reviews.length,
+			reviews,
+		});
+	} catch (err) {
+		console.error('Error fetching reviews:', err);
+		res.status(500).json({ message: 'Server error fetching reviews' });
+	}
 });
 
 // @route   /reviews/:reviewId
