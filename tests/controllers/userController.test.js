@@ -12,8 +12,12 @@ import {
 	updateUserMovieReview,
 	deleteUserMovieReview,
 	updateUserProfile,
+	getUserMovies,
+	addUserMovie,
+	getSingleUserMovie,
 	updateUserMovie,
-	deleteUserMovie,
+	deleteUserMovie
+
 } from '../../src/controllers/userController.js';
 
 describe('User Controller - Behavior and Scenario Testing', () => {
