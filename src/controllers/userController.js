@@ -1,4 +1,5 @@
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import Review from '../models/Review.js';
 import Movie from '../models/Movie.js';
 import User from '../models/User.js';
@@ -9,27 +10,27 @@ import UserMovie from '../models/UserMovie.js';
 // PUT /users/me
 // Update current authenticated user's profile
 const updateUserProfile = asyncHandler(async (req, res) => {
-	try {
-		const userId = req.user._id; // From 'ensureAuthenticated' middleware
-		const updates = {
-			name: req.body.name,
-			email: req.body.email,
-		};
+	const userId = req.user._id;
+	const { name, email } = req.body;
 
-		const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+	const updatedUser = await User.findByIdAndUpdate(
+		userId,
+		{ name, email }, // Pass only the fields you want to update
+		{
 			new: true,
 			runValidators: true,
-		});
-
-		if (!updatedUser) {
-			return res.status(404).json({ message: 'User not found' });
 		}
+	);
 
-		res.json({ message: 'Profile updated successfully', user: updatedUser });
-	} catch (err) {
-		console.error('Update error:', err);
-		res.status(500).json({ message: 'Server error' });
+	if (!updatedUser) {
+		res.status(404);
+		throw new Error('User not found');
 	}
+
+	res.status(200).json({
+		message: 'Profile updated successfully',
+		user: updatedUser,
+	});
 });
 
 // DELETE /users/me
@@ -59,43 +60,137 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
 
 // GET  /users/me/movies
 // Get all movies in the authenticated user's collection
+// This is sort of complicated as it requires 2 stages to match given the filters as STATUS is on the userMovie,
+// whilst Movies is on the User
 const getUserMovies = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
-	// const { genre, year, status } = req.query; // Adjust as needed
-	// Logic to fetch user's movies with filters
+	const userId = req.user._id;
+	const { title, year, genre, status } = req.query;
+
+	const pipeline = [
+		// Match UserMovies for the current user
+		{
+			$match: {
+				user: new mongoose.Types.ObjectId(userId),
+			},
+		},
+		// Join with the movies collection
+		{
+			$lookup: {
+				from: 'movies', // actual collection name in mongoDB
+				localField: 'movie',
+				foreignField: '_id',
+				as: 'movieDetails',
+			},
+		},
+		// movieDetails array, let's unwind it
+		{
+			$unwind: '$movieDetails',
+		},
+		// Filter setup
+		{
+			$match: {},
+		},
+		// Replacing the root to combine UserMovie and Movie details
+		{
+			$replaceRoot: {
+				newRoot: {
+					$mergeObjects: ['$movieDetails', '$$ROOT'],
+				},
+			},
+		},
+		{
+			$project: {
+				movieDetails: 0, // Removing the nested movieDetails object for efficiency
+			},
+		},
+	];
+
+	// SECOND STAGE - now we use the filters
+	const filterStage = pipeline[3].$match;
+
+	if (status) filterStage.status = status;
+
+	if (genre) filterStage['movieDetails.genre'] = genre;
+
+	if (year) filterStage['movieDetails.year'] = Number(year);
+
+	if (title) {
+		filterStage['movieDetails.title'] = { $regex: title, $options: 'i' };
+	}
+
+	const userMovies = await UserMovie.aggregate(pipeline);
 
 	res.status(200).json({
-		message: "User's movie collection list",
-		userId: req.user?._id,
-		filters: req.query,
+		success: true,
+		count: userMovies.length,
+		data: userMovies,
 	});
 });
 
 // POST users/me/movies
 // Add a movie to the authenticated user's collection
 const addUserMovie = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
-	// const { movieId, status, userRating, notes } = req.body;
-	// Logic to add and link movie to user's collection
+	const userId = req.user._id;
+	const { movieId, status } = req.body;
+
+	// Ok, confirm movie exists.
+	const movieExists = await Movie.findById(movieId);
+	if (!movieExists) {
+		res.status(404);
+		throw new Error('Movie not found in the global database.');
+	}
+
+	// Don't want to add twice... let's first ensure it's not already there
+	const userMovieExists = await UserMovie.findOne({
+		user: userId,
+		movie: movieId,
+	});
+	if (userMovieExists) {
+		res.status(409); // Error code = Conflict
+		throw new Error('This movie is already in your collection.');
+	}
+
+	const newUserMovie = new UserMovie({
+		user: userId,
+		movie: movieId,
+		status: status || 'planned_to_watch', // Default status if not provided (first choice in model at index 0)
+	});
+
+	await newUserMovie.save();
+
+	// Populate details for response
+	const populatedUserMovie = await UserMovie.findById(
+		newUserMovie._id
+	).populate('movie');
 
 	res.status(201).json({
-		message: "Movie added to user's collection",
-		userId: req.user?._id,
-		data: req.body,
+		success: true,
+		message: 'Movie added to your collection.',
+		data: populatedUserMovie,
 	});
 });
 
 // GET /users/me/movies/:movieId
 // Get a specific movie from the authenticated user's collection
 const getSingleUserMovie = asyncHandler(async (req, res) => {
-	// const userId = req.user._id;
-	// const { movieId } = req.params;
-	// Logic to fetch a specific movie from user's collection
+	const userId = req.user._id;
+	const { movieId } = req.params;
+
+	const userMovie = await UserMovie.findOne({
+		user: userId,
+		movie: movieId,
+	}).populate('movie'); // Populate with all movie details
+
+	if (!userMovie) {
+		res.status(404);
+		throw new Error(
+			'Movie not found in your collection. Add it to your list first or check the ID.'
+		);
+	}
 
 	res.status(200).json({
-		message: "Specific movie from user's collection",
-		userId: req.user?._id,
-		movieId: req.params.movieId,
+		success: true,
+		data: userMovie,
 	});
 });
 
@@ -105,33 +200,23 @@ const updateUserMovie = asyncHandler(async (req, res) => {
 	const userId = req.user._id;
 	const { movieId } = req.params;
 	const { status } = req.body;
-	// Logic to update user's movie entry
-	const validStatuses = ['planned_to_watch', 'watching', 'watched', 'dropped'];
-	if (!validStatuses.includes(status)) {
-		return res.status(400).json({ message: 'Invalid status value' });
-	}
-	try {
-		const updated = await UserMovie.findOneAndUpdate(
-			{ user: userId, movie: movieId },
-			{ status },
-			{ new: true }
-		);
-		if (!updated) {
-			return res
-				.status(404)
-				.json({ message: 'Movie not found in your collection' });
-		}
 
-		res.status(200).json({
-			message: "User's movie entry updated",
-			userId: req.user?._id,
-			movieId: req.params.movieId,
-			userMovie: updated,
-		});
-	} catch (err) {
-		console.error('Error updating movie status:', err);
-		res.status(500).json({ message: 'Server error' });
+	const updatedUserMovie = await UserMovie.findOneAndUpdate(
+		{ user: userId, movie: movieId },
+		{ status },
+		{ new: true, runValidators: true }
+	).populate('movie');
+
+	if (!updatedUserMovie) {
+		res.status(404);
+		throw new Error('Movie not found in collection.');
 	}
+
+	res.status(200).json({
+		success: true,
+		message: 'Movie status updated successfully.',
+		data: updatedUserMovie,
+	});
 });
 
 // DELETE /users/me/movies/:movieId
@@ -140,27 +225,20 @@ const deleteUserMovie = asyncHandler(async (req, res) => {
 	const userId = req.user._id;
 	const { movieId } = req.params;
 	// Logic to remove movie from user's collection
-	try {
-		const deleted = await UserMovie.findOneAndDelete({
-			user: userId,
-			movie: movieId,
-		});
+	const deleted = await UserMovie.findOneAndDelete({
+		user: userId,
+		movie: movieId,
+	});
 
-		if (!deleted) {
-			return res.status(200).json({
-				message: "Movie removed from user's collection",
-				userId: req.user?._id,
-				movieId: req.params.movieId,
-			});
-		}
-
-		res.json({ message: 'Movie removed from your collection' });
-	} catch (err) {
-		console.error('Error deleting movie:', err);
-		res.status(500).json({ message: 'Server error' });
+	if (!deleted) {
+		res.status(404);
+		throw new Error('Movie not found in collection.');
 	}
 
-	r;
+	res.status(200).json({
+		success: true,
+		message: 'Movie removed from your collection.',
+	});
 });
 
 // USER REVIEW SPECIFIC

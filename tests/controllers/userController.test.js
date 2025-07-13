@@ -12,6 +12,9 @@ import {
 	updateUserMovieReview,
 	deleteUserMovieReview,
 	updateUserProfile,
+	getUserMovies,
+	addUserMovie,
+	getSingleUserMovie,
 	updateUserMovie,
 	deleteUserMovie,
 } from '../../src/controllers/userController.js';
@@ -356,38 +359,138 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 	});
 
 	describe('getUserMovies - Success Scenarios', () => {
-		test.skip('should return user movie collection successfully', async () => {
-			// TODO: Implement when getUserMovies function is fully implemented
-		});
-	});
+		it('should return user movie collection successfully', async () => {
+			const { req, res } = createMockReqRes();
+			const mockUserMovies = [
+				{ _id: 'usermovie1', movie: 'movie1', status: 'watched' },
+				{ _id: 'usermovie2', movie: 'movie2', status: 'watching' },
+			];
+			mockingoose(UserMovie).toReturn(mockUserMovies, 'aggregate');
 
-	describe('getUserMovies - Error Scenarios', () => {
-		test.skip('should handle database errors gracefully', async () => {
-			// TODO: Implement when getUserMovies function is fully implemented
+			await getUserMovies(req, res);
+
+			expect(res.statusCode).toBe(200);
+			expect(res.data.success).toBe(true);
+			expect(res.data.count).toBe(2);
+			expect(res.data.data).toEqual(mockUserMovies);
+		});
+
+		it('should return an empty array if user has no movies', async () => {
+			const { req, res } = createMockReqRes();
+			mockingoose(UserMovie).toReturn([], 'aggregate');
+
+			await getUserMovies(req, res);
+
+			expect(res.statusCode).toBe(200);
+			expect(res.data.count).toBe(0);
+			expect(res.data.data).toEqual([]);
 		});
 	});
 
 	describe('addUserMovie - Success Scenarios', () => {
-		test.skip('should add movie to user collection successfully', async () => {
-			// TODO: Implement when addUserMovie function is fully implemented
+		it('should add movie to user collection successfully', async () => {
+			const { req, res } = createMockReqRes(
+				{ _id: 'user123' },
+				{},
+				{},
+				{ movieId: 'movie123', status: 'watched' }
+			);
+
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findById');
+			mockingoose(UserMovie).toReturn(null, 'findOne'); // No existing entry
+			// Mock the save and populate chain
+			const savedDoc = {
+				_id: 'usermovie456',
+				user: 'user123',
+				movie: 'movie123',
+				status: 'watched',
+			};
+			mockingoose(UserMovie).toReturn(savedDoc, 'save');
+			mockingoose(UserMovie).toReturn(
+				{ ...savedDoc, movie: { _id: 'movie123', title: 'Test Movie' } },
+				'findById'
+			);
+
+			await addUserMovie(req, res);
+
+			expect(res.statusCode).toBe(201);
+			expect(res.data.success).toBe(true);
+			expect(res.data.data.status).toBe('watched');
+			expect(res.data.data.movie.title).toBe('Test Movie');
 		});
 	});
 
 	describe('addUserMovie - Error Scenarios', () => {
-		test.skip('should return 404 when movie not found', async () => {
-			// TODO: Implement when addUserMovie function is fully implemented
+		it('should return 404 when movie does not exist globally', async () => {
+			const { req, res } = createMockReqRes(
+				{ _id: 'user123' },
+				{},
+				{},
+				{ movieId: 'nonexistent' }
+			);
+			mockingoose(Movie).toReturn(null, 'findById');
+
+			await expect(addUserMovie(req, res)).rejects.toThrow(
+				'Movie not found in the global catalog.'
+			);
+			expect(res.statusCode).toBe(404);
+		});
+
+		it('should return 409 when movie is already in user collection', async () => {
+			const { req, res } = createMockReqRes(
+				{ _id: 'user123' },
+				{},
+				{},
+				{ movieId: 'movie123' }
+			);
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findById');
+			mockingoose(UserMovie).toReturn({ _id: 'existing' }, 'findOne');
+
+			await expect(addUserMovie(req, res)).rejects.toThrow(
+				'This movie is already in your collection.'
+			);
+			expect(res.statusCode).toBe(409);
 		});
 	});
 
 	describe('getSingleUserMovie - Success Scenarios', () => {
-		test.skip('should return specific user movie successfully', async () => {
-			// TODO: Implement when getSingleUserMovie function is fully implemented
+		it('should return a specific movie from user collection', async () => {
+			const { req, res } = createMockReqRes(
+				{ _id: 'user123' },
+				{},
+				{ movieId: 'movie123' }
+			);
+
+			const mockUserMovie = {
+				_id: 'usermovie456',
+				user: 'user123',
+				movie: { _id: 'movie123', title: 'Found Movie' },
+				status: 'watched',
+			};
+			mockingoose(UserMovie).toReturn(mockUserMovie, 'findOne');
+
+			await getSingleUserMovie(req, res);
+
+			expect(res.statusCode).toBe(200);
+			expect(res.data.success).toBe(true);
+			expect(res.data.data.movie.title).toBe('Found Movie');
 		});
 	});
 
 	describe('getSingleUserMovie - Error Scenarios', () => {
-		test.skip('should return 404 when user movie not found', async () => {
-			// TODO: Implement when getSingleUserMovie function is fully implemented
+		it('should return 404 when user movie not found', async () => {
+			const { req, res } = createMockReqRes(
+				{ _id: 'user123' },
+				{},
+				{ movieId: 'nonexistent' }
+			);
+
+			mockingoose(UserMovie).toReturn(null, 'findOne');
+
+			await expect(getSingleUserMovie(req, res)).rejects.toThrow(
+				'Movie not found in your collection'
+			);
+			expect(res.statusCode).toBe(404);
 		});
 	});
 

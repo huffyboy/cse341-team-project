@@ -409,44 +409,41 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 	});
 
 	describe('getMovieReviews - Success Scenarios', () => {
-		test.skip('should return all reviews for a specific movie', async () => {
-			// TODO: Kathryn - Uncomment when getMovieReviews function is fully implemented
-			// Arrange: Setup test with request and response
+		test('should return all reviews for a specific movie', async () => {
 			const { req, res } = createMockReqRes({ movieId: 'movie123' });
 
 			// Arrange: Specify what the database will return
 			const mockReviews = [
 				{
 					_id: 'review1',
-					user: 'user123',
+					user: { name: 'User A' },
 					movie: 'movie123',
 					rating: 5,
 					message: 'Amazing movie!',
-					createdAt: new Date('2023-01-15'),
 				},
 				{
 					_id: 'review2',
-					user: 'user456',
+					user: { name: 'User B' },
 					movie: 'movie123',
 					rating: 4,
 					message: 'Great film!',
-					createdAt: new Date('2023-02-20'),
 				},
 			];
+			// Mock the .populate() call
 			mockingoose(Review).toReturn(mockReviews, 'find');
 
-			// Act: Call the function
+			// Call the function
 			await getMovieReviews(req, res);
 
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
-			expect(res.data.message).toBe('List of reviews for a movie');
-			expect(res.data.movieId).toBe('movie123');
+			expect(res.data.success).toBe(true);
+			expect(res.data.count).toBe(2);
+			expect(res.data.data).toHaveLength(2);
+			expect(res.data.data[0].message).toBe('Amazing movie!');
 		});
 
-		test.skip('should return empty array when no reviews exist', async () => {
-			// TODO: Kathryn - Uncomment when getMovieReviews function is fully implemented
-			// Arrange: Setup test with request and response
+		test('should return empty array when no reviews exist', async () => {
 			const { req, res } = createMockReqRes({ movieId: 'movie456' });
 
 			// Arrange: Specify what the database will return
@@ -457,13 +454,14 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
-			expect(res.data.message).toBe('List of reviews for a movie');
-			expect(res.data.movieId).toBe('movie456');
+			expect(res.data.success).toBe(true);
+			expect(res.data.count).toBe(0);
+			expect(res.data.data).toEqual([]);
 		});
+	});
 
-		test.skip('should handle database errors gracefully', async () => {
-			// TODO: Kathryn - Uncomment when getMovieReviews function is fully implemented
-			// Arrange: Setup test with request and response
+	describe('getMovieReviews - Error Scenarios', () => {
+		test('should handle database errors gracefully', async () => {
 			const { req, res } = createMockReqRes({ movieId: 'movie123' });
 
 			// Arrange: Specify what the database will return
@@ -472,10 +470,11 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 				'find'
 			);
 
-			// Act & Assert: Verify error handling
+			// Verify error handling
 			await expect(getMovieReviews(req, res)).rejects.toThrow(
 				'Database connection failed'
 			);
 		});
 	});
+
 });
