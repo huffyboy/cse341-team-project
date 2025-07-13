@@ -32,15 +32,14 @@ const getAllMovies = asyncHandler(async (req, res) => {
 // Get a single movie by ID from the global catalog
 const getMovieById = asyncHandler(async (req, res) => {
 	const { movieId } = req.params;
-	try {
-		const movie = await Movie.findById(movieId);
-		if (!movie) {
-			return res.status(404).json({ message: 'Movie not found' });
-		}
-		return res.status(200).json(movie);
-	} catch (err) {
-		return res.status(400).json({ message: 'Error retrieving movie' });
+	const movie = await Movie.findById(movieId);
+
+	if (!movie) {
+		res.status(404);
+		throw new Error('Movie not found');
 	}
+
+	res.status(200).json(movie);
 });
 
 // POST /movies

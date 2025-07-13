@@ -145,6 +145,7 @@ const addUserMovie = asyncHandler(async (req, res) => {
 		user: userId,
 		movie: movieId,
 	});
+
 	if (userMovieExists) {
 		res.status(409); // Error code = Conflict
 		throw new Error('This movie is already in your collection.');
