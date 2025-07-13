@@ -4,6 +4,7 @@ import express from 'express';
 import userRoutes from '../../src/routes/userRoutes.js';
 import UserMovie from '../../src/models/UserMovie.js';
 import Movie from '../../src/models/Movie.js';
+import Review from '../../src/models/Review.js';
 
 // Mocking Middleware
 // This is the crucial part. We replace the actual 'ensureAuthenticated'
@@ -16,11 +17,12 @@ const mockAuthMiddleware = (req, res, next) => {
 // Create test app
 const app = express();
 app.use(express.json());
-app.use('/users', mockAuthMiddleware ,  userRoutes);
+app.use('/users', mockAuthMiddleware, userRoutes);
 
 // Mocking Mongoose with jest
 jest.mock('../../src/models/UserMovie.js');
 jest.mock('../../src/models/Movie.js');
+jest.mock('../../src/models/Review.js');
 
 describe('User Routes - Integration Tests', () => {
 	describe('PUT /users/me', () => {
@@ -96,7 +98,9 @@ describe('User Routes - Integration Tests', () => {
 			expect(response.body.data[0]._id).toBe('usermovie1');
 
 			// Verify mock worked
-			expect(UserMovie.aggregate.mock.calls[0][0][0].$match.user.toString()).toBe('mockUserId123');
+			expect(
+				UserMovie.aggregate.mock.calls[0][0][0].$match.user.toString()
+			).toBe('mockUserId123');
 		});
 	});
 
@@ -111,7 +115,10 @@ describe('User Routes - Integration Tests', () => {
 			UserMovie.findById.mockReturnValue({
 				populate: jest.fn().mockResolvedValue({
 					_id: 'usermovie456',
-					movie: { _id: 'movie123', title: 'Inception' },
+					movie: {
+						_id: 'movie123',
+						title: 'Inception',
+					},
 					status: 'planned_to_watch',
 				}),
 			});
@@ -132,7 +139,10 @@ describe('User Routes - Integration Tests', () => {
 			const mockData = {
 				_id: 'usermovie1',
 				status: 'watched',
-				movie: { _id: 'movie123', title: 'The Lord of the Rings: The Fellowship of the Ring' },
+				movie: {
+					_id: 'movie123',
+					title: 'The Lord of the Rings: The Fellowship of the Ring',
+				},
 			};
 			UserMovie.findOne.mockReturnValue({
 				populate: jest.fn().mockResolvedValue(mockData),
@@ -143,7 +153,9 @@ describe('User Routes - Integration Tests', () => {
 				.expect(200);
 
 			expect(response.body.success).toBe(true);
-			expect(response.body.data.movie.title).toBe('The Lord of the Rings: The Fellowship of the Ring');
+			expect(response.body.data.movie.title).toBe(
+				'The Lord of the Rings: The Fellowship of the Ring'
+			);
 		});
 
 		test('should return 404 if movie is not in user collection', async () => {
