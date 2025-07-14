@@ -93,22 +93,10 @@ const updateMovie = asyncHandler(async (req, res) => {
 
 	// Check if movie exists before updating
 	const existingMovie = await Movie.findById(movieId);
+
 	if (!existingMovie) {
 		res.status(404);
 		throw new Error('Movie not found');
-	}
-
-	// If title and year are being updated, check for duplicates
-	if (updateData.title && updateData.year) {
-		const duplicateMovie = await Movie.findOne({
-			title: updateData.title,
-			year: updateData.year,
-			_id: { $ne: movieId }, // Exclude current movie from duplicate check
-		});
-		if (duplicateMovie) {
-			res.status(409);
-			throw new Error('Movie with this title and year already exists');
-		}
 	}
 
 	// Find movie by ID and update it
@@ -131,6 +119,7 @@ const deleteMovie = asyncHandler(async (req, res) => {
 
 	// Check if movie exists before deleting
 	const existingMovie = await Movie.findById(movieId);
+
 	if (!existingMovie) {
 		res.status(404);
 		throw new Error('Movie not found');
@@ -143,17 +132,30 @@ const deleteMovie = asyncHandler(async (req, res) => {
 		throw new Error('Cannot delete movie with existing reviews');
 	}
 
-	// Find and delete the movie
-	const deletedMovie = await Movie.findByIdAndDelete(movieId);
+	// const title = existingMovie.title;
+	// const id = existingMovie._id;
 
-	res.status(200).json({
-		success: true,
-		message: 'Movie deleted successfully',
-		data: {
-			id: deletedMovie._id,
-			title: deletedMovie.title,
-		},
-	});
+	// Find and delete the movie
+	try {
+        const deletedMovie = await Movie.findByIdAndDelete(movieId);
+        if (!deletedMovie) {
+            res.status(404);
+            throw new Error('Movie not found during deletion');
+        }
+
+		console.log(deletedMovie)
+        res.status(200).json({
+            success: true,
+            message: 'Movie deleted successfully',
+            data: {
+				id: deletedMovie._id,
+				title: deletedMovie.title
+			},
+        });
+    } catch (error) {
+        res.status(500);
+        throw new Error('Database connection failed');
+    }
 });
 
 export { getAllMovies, getMovieById, createMovie, updateMovie, deleteMovie };
