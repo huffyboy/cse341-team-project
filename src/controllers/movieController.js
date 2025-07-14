@@ -143,7 +143,6 @@ const deleteMovie = asyncHandler(async (req, res) => {
             throw new Error('Movie not found during deletion');
         }
 
-		console.log(deletedMovie)
         res.status(200).json({
             success: true,
             message: 'Movie deleted successfully',

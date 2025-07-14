@@ -403,7 +403,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 		test('should handle database errors during deletion', async () => {
 			const reviewId = new mongoose.Types.ObjectId();
 			// Arrange: Setup test with request and response
-			const { req, res } = createMockReqRes({ reviewId: reviewId });
+			const { req, res } = createMockReqRes({ reviewId: 'review123' });
 
 			// Arrange: Specify what the database will return
 			mockingoose(Review).toReturn(
