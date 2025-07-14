@@ -1,5 +1,6 @@
 // Unit tests for review controller - Testing behavior and scenarios
 import mockingoose from 'mockingoose';
+import mongoose from 'mongoose';
 import Review from '../../src/models/Review.js';
 import {
 	updateReview,
@@ -37,30 +38,29 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 	});
 
 	describe('updateReview - Success Scenarios', () => {
-		it('should update existing review successfully', async () => {
+		test('should update existing review successfully', async () => {
 			// Arrange: Setup test with request and response
+			 const reviewId = new mongoose.Types.ObjectId();
+			 const movieId = new mongoose.Types.ObjectId();
+			 const userId = new mongoose.Types.ObjectId();
+
 			const { req, res } = createMockReqRes(
-				{ reviewId: 'review123' },
+				{ reviewId: reviewId },
 				{ rating: 4, message: 'Updated review message' }
 			);
 
-			// Arrange: Specify what the database will return
+			// Arrange: Define the data the database should "find".
 			const existingReview = {
-				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
 				rating: 3,
 				message: 'Old review message',
-				save: () =>
-					Promise.resolve({
-						_id: 'review123',
-						user: 'user123',
-						movie: 'movie123',
-						rating: 4,
-						message: 'Updated review message',
-					}),
 			};
-			mockingoose(Review).toReturn(existingReview, 'findById');
+
+			// Mock the underlying 'findOne' operation instead of the 'findById' alias.
+			// mockingoose will return a mock document with a working .save() method.
+			mockingoose(Review).toReturn(existingReview, 'findOne');
 
 			// Act: Call the function
 			await updateReview(req, res);
@@ -71,30 +71,27 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.data.message).toBe('Updated review message');
 		});
 
-		it('should handle rating change from 1 to 5', async () => {
+		test('should handle rating change from 1 to 5', async () => {
+
+			const reviewId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
-				{ reviewId: 'review123' },
-				{ rating: 5, message: 'Excellent movie!' }
+				{ reviewId: reviewId },
+				{ rating: 5, message: "Terrible movie" } // Only updating the rating
 			);
 
 			// Arrange: Specify what the database will return
 			const existingReview = {
-				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
 				rating: 1,
-				message: 'Terrible movie',
-				save: () =>
-					Promise.resolve({
-						_id: 'review123',
-						user: 'user123',
-						movie: 'movie123',
-						rating: 5,
-						message: 'Excellent movie!',
-					}),
+				message: 'Terrible movie'
 			};
-			mockingoose(Review).toReturn(existingReview, 'findById');
+			mockingoose(Review).toReturn(existingReview, 'findOne');
 
 			// Act: Call the function
 			await updateReview(req, res);
@@ -102,12 +99,12 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
 			expect(res.data.rating).toBe(5);
-			expect(res.data.message).toBe('Excellent movie!');
+			expect(res.data.message).toBe('Terrible movie');
 		});
 	});
 
 	describe('updateReview - Error Scenarios', () => {
-		it('should return 404 when review not found', async () => {
+		test('should return 404 when review not found', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'nonexistent' },
@@ -122,7 +119,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(404);
 		});
 
-		it('should return 400 when rating is missing', async () => {
+		test('should return 400 when rating is missing', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -136,7 +133,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when message is missing', async () => {
+		test('should return 400 when message is missing', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -150,7 +147,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when rating is less than 1', async () => {
+		test('should return 400 when rating is less than 1', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -164,7 +161,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when rating is greater than 5', async () => {
+		test('should return 400 when rating is greater than 5', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -178,7 +175,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when rating is not a number', async () => {
+		test('should return 400 when rating is not a number', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -192,7 +189,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when message is empty', async () => {
+		test('should return 400 when message is empty', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -206,7 +203,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when message is only whitespace', async () => {
+		test('should return 400 when message is only whitespace', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -220,7 +217,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(400);
 		});
 
-		it('should return 400 when message is not a string', async () => {
+		test('should return 400 when message is not a string', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes(
 				{ reviewId: 'review123' },
@@ -236,30 +233,27 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 	});
 
 	describe('updateReview - Edge Cases', () => {
-		it('should handle special characters in message', async () => {
+		test('should handle special characters in message', async () => {
 			// Arrange: Setup test with request and response
+			const reviewId = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+
 			const { req, res } = createMockReqRes(
-				{ reviewId: 'review123' },
+				{ reviewId: reviewId },
 				{ rating: 5, message: 'Amazing movie! 🎬 100% recommend! 💯' }
 			);
 
 			// Arrange: Specify what the database will return
 			const existingReview = {
-				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
 				rating: 3,
-				message: 'Old message',
-				save: () =>
-					Promise.resolve({
-						_id: 'review123',
-						user: 'user123',
-						movie: 'movie123',
-						rating: 5,
-						message: 'Amazing movie! 🎬 100% recommend! 💯',
-					}),
+				message: 'Old message'
+
 			};
-			mockingoose(Review).toReturn(existingReview, 'findById');
+			mockingoose(Review).toReturn(existingReview, 'findOne');
 
 			// Act: Call the function
 			await updateReview(req, res);
@@ -269,55 +263,60 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.data.message).toBe('Amazing movie! 🎬 100% recommend! 💯');
 		});
 
-		it('should handle very long message', async () => {
+		test('should handle very long message', async () => {
 			// Arrange: Setup test with request and response
-			const longMessage = 'A'.repeat(1000);
+			const reviewId = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+
+			const longMessage = 'A'.repeat(1500); // 1500 length string should be accepted.
 			const { req, res } = createMockReqRes(
-				{ reviewId: 'review123' },
+				{ reviewId: reviewId },
 				{ rating: 4, message: longMessage }
 			);
 
 			// Arrange: Specify what the database will return
 			const existingReview = {
-				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
 				rating: 3,
-				message: 'Old message',
-				save: () =>
-					Promise.resolve({
-						_id: 'review123',
-						user: 'user123',
-						movie: 'movie123',
-						rating: 4,
-						message: longMessage,
-					}),
+				message: 'Old message'
 			};
-			mockingoose(Review).toReturn(existingReview, 'findById');
+			mockingoose(Review).toReturn(existingReview, 'findOne');
 
 			// Act: Call the function
 			await updateReview(req, res);
 
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
+			expect(res.data.rating).toBe(4);
 			expect(res.data.message).toBe(longMessage);
 		});
 	});
 
 	describe('deleteReview - Success Scenarios', () => {
-		it('should delete review successfully', async () => {
+		test('should delete review successfully', async () => {
+			const reviewId = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+
 			// Arrange: Setup test with request and response
-			const { req, res } = createMockReqRes({ reviewId: 'review123' });
+			const { req, res } = createMockReqRes(
+				{
+					reviewId: reviewId
+				}
+			);
 
 			// Arrange: Specify what the database will return
 			const deletedReview = {
-				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
 				rating: 4,
 				message: 'Deleted review',
 			};
-			mockingoose(Review).toReturn(deletedReview, 'findByIdAndDelete');
+			mockingoose(Review).toReturn(deletedReview, 'findOneAndDelete');
 
 			// Act: Call the function
 			await deleteReview(req, res);
@@ -325,22 +324,41 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
 			expect(res.data.message).toBe('Review deleted successfully');
-			expect(res.data.reviewId).toBe('review123');
+			expect(res.data.reviewId).toBe(reviewId);
 		});
 
-		it('should handle deletion of different review IDs', async () => {
+		test('should handle deletion of different review IDs', async () => {
+			const reviewId = new mongoose.Types.ObjectId();
+			const reviewId2 = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+
+			// Let's make 2 existing reviews and only delete 1 of them, then confirm other still exists
+			const deletedReview = {
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
+				rating: 5,
+				message: 'This is my review 1',
+			};
+			const deletedReview2 = {
+				_id: reviewId2,
+				user: userId,
+				movie: movieId,
+				rating: 5,
+				message: 'This is my review 2',
+			};
+
 			// Arrange: Setup test with request and response
-			const { req, res } = createMockReqRes({ reviewId: 'review456' });
+			// Create moqs of each review
+			var { req, res } = createMockReqRes(
+				{
+					reviewId: reviewId
+				}
+			);
 
 			// Arrange: Specify what the database will return
-			const deletedReview = {
-				_id: 'review456',
-				user: 'user456',
-				movie: 'movie456',
-				rating: 5,
-				message: 'Another deleted review',
-			};
-			mockingoose(Review).toReturn(deletedReview, 'findByIdAndDelete');
+			mockingoose(Review).toReturn(deletedReview, 'findOneAndDelete');
 
 			// Act: Call the function
 			await deleteReview(req, res);
@@ -348,12 +366,29 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
 			expect(res.data.message).toBe('Review deleted successfully');
-			expect(res.data.reviewId).toBe('review456');
+			expect(res.data.reviewId).toBe(deletedReview._id);
+
+			// Now work on 2nd
+			var { req, res } = createMockReqRes(
+				{
+					reviewId: reviewId2
+				}
+			);
+
+			mockingoose(Review).toReturn(deletedReview2, 'findOneAndDelete');
+			// Act: Call the function
+			await deleteReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data.message).toBe('Review deleted successfully');
+			expect(res.data.reviewId).toBe(deletedReview2._id);
+			expect
 		});
 	});
 
 	describe('deleteReview - Error Scenarios', () => {
-		it('should return 404 when review not found', async () => {
+		test('should return 404 when review not found', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes({ reviewId: 'nonexistent' });
 
@@ -365,14 +400,15 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(404);
 		});
 
-		it('should handle database errors during deletion', async () => {
+		test('should handle database errors during deletion', async () => {
+			const reviewId = new mongoose.Types.ObjectId();
 			// Arrange: Setup test with request and response
-			const { req, res } = createMockReqRes({ reviewId: 'review123' });
+			const { req, res } = createMockReqRes({ reviewId: reviewId });
 
 			// Arrange: Specify what the database will return
 			mockingoose(Review).toReturn(
 				new Error('Database connection failed'),
-				'findByIdAndDelete'
+				'findOneAndDelete'
 			);
 
 			// Act & Assert: Verify error handling
@@ -383,7 +419,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 	});
 
 	describe('deleteReview - Edge Cases', () => {
-		it('should handle invalid review ID format', async () => {
+		test('should handle invalid review ID format', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes({ reviewId: 'invalid-id-format' });
 
@@ -395,7 +431,7 @@ describe('Review Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(404);
 		});
 
-		it('should handle empty review ID', async () => {
+		test('should handle empty review ID', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes({ reviewId: '' });
 

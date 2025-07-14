@@ -45,6 +45,7 @@ const updateReview = asyncHandler(async (req, res) => {
 
 	// Find the review
 	const review = await Review.findById(reviewId);
+
 	if (!review) {
 		res.status(404);
 		throw new Error('Review not found.');
