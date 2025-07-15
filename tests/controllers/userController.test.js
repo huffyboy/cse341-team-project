@@ -377,14 +377,115 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 	});
 
 	describe('getUserMovieReview - Success Scenarios', () => {
-		test('should return user review for specific movie', async () => {
-			// TODO: Implement when getUserMovieReview function is fully implemented
+		test('should return review when user has reviewed the movie', async () => {
+			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+			const reviewId = new mongoose.Types.ObjectId();
+
+			const { req, res } = createMockReqRes();
+			req.user = { _id: userId };
+			req.params.movieId = movieId;
+
+			// Arrange: Specify what the database will return
+			const mockReview = {
+				_id: reviewId,
+				user: userId,
+				movie: {
+					_id: movieId,
+					title: 'The Matrix',
+					year: 1999,
+					genre: ['Action', 'Sci-Fi'],
+					director: 'Wachowski Sisters',
+					posterUrl: 'https://example.com/matrix.jpg',
+				},
+				rating: 5,
+				message: 'Revolutionary film!',
+				createdAt: new Date('2023-01-15'),
+			};
+			mockingoose(Review).toReturn(mockReview, 'findOne');
+
+			// Act: Call the function
+			await getUserMovieReview(req, res);
+
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data._id).toBe(reviewId);
+			expect(res.data.user).toBe(userId);
+			expect(res.data.movie._id).toBe(movieId);
+			expect(res.data.rating).toBe(5);
+			expect(res.data.message).toBe('Revolutionary film!');
+			expect(res.data.createdAt).toEqual(new Date('2023-01-15'));
+		});
+
+		test('should return review with minimal movie data when populated', async () => {
+			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+			const reviewId = new mongoose.Types.ObjectId();
+
+			const { req, res } = createMockReqRes();
+			req.user = { _id: userId };
+			req.params.movieId = movieId;
+
+			// Arrange: Specify what the database will return
+			const mockReview = {
+				_id: reviewId,
+				user: userId,
+				movie: {
+					_id: movieId,
+					title: 'Inception',
+					year: 2010,
+				},
+				rating: 4,
+				message: 'Mind-bending plot!',
+				createdAt: new Date('2023-02-20'),
+			};
+			mockingoose(Review).toReturn(mockReview, 'findOne');
+
+			// Act: Call the function
+			await getUserMovieReview(req, res);
+			console.log(res);
+			// Assert: Verify the response
+			expect(res.statusCode).toBe(200);
+			expect(res.data._id).toBe(reviewId);
+			expect(res.data.movie).toBe(movieId);
+			expect(res.data.rating).toBe(4);
+			expect(res.data.message).toBe('Mind-bending plot!');
 		});
 	});
 
 	describe('getUserMovieReview - Error Scenarios', () => {
-		test('should return 404 when review not found', async () => {
-			// TODO: Implement when getUserMovieReview function is fully implemented
+		test('should return 404 when user has not reviewed the movie', async () => {
+			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+			const { req, res } = createMockReqRes();
+			req.user = { _id: userId };
+			req.params.movieId = movieId;
+
+			// Arrange: Specify what the database will return
+			mockingoose(Review).toReturn(null, 'findOne');
+
+			// Act & Assert: Expect the function to throw an error
+			await expect(getUserMovieReview(req, res)).rejects.toThrow('Review by you for this movie not found.');
+			expect(res.statusCode).toBe(404);
+		});
+
+		test('should handle different user and movie combinations for 404', async () => {
+			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+			const { req, res } = createMockReqRes();
+			req.user = { _id: userId };
+			req.params.movieId = movieId;
+
+			// Arrange: Specify what the database will return (no review found)
+			mockingoose(Review).toReturn(null, 'findOne');
+
+			// Act & Assert: Expect the function to throw an error
+			await expect(getUserMovieReview(req, res)).rejects.toThrow('Review by you for this movie not found.');
+			expect(res.statusCode).toBe(404);
 		});
 	});
 
@@ -909,12 +1010,9 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			// Arrange: Specify what the database will return
 			mockingoose(UserMovie).toReturn(null, 'findOneAndUpdate');
 
-			// Act: Call the function
-			await updateUserMovie(req, res);
-
 			// Assert: Verify the response
+			await expect(updateUserMovie(req, res)).rejects.toThrow('Movie not found in collection.');
 			expect(res.statusCode).toBe(404);
-			expect(res.data.message).toBe('Movie not found in collection.');
 
 		});
 	});
@@ -951,12 +1049,9 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			// Arrange: Specify what the database will return
 			mockingoose(UserMovie).toReturn(null, 'findOneAndDelete');
 
-			// Act: Call the function
-			await deleteUserMovie(req, res);
-
 			// Assert: Verify the response
+			await expect(deleteUserMovie(req, res)).rejects.toThrow('Movie not found in collection.');
 			expect(res.statusCode).toBe(404);
-			expect(res.data.message).toBe('User movie not found');
 		});
 	});
 });
