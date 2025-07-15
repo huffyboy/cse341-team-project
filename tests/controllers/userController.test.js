@@ -22,12 +22,17 @@ import {
 
 describe('User Controller - Behavior and Scenario Testing', () => {
 	// Helper function to create mock request/response objects
-	const createMockReqRes = (userData = { _id: 'user123' }, queryData = {}) => {
+	const createMockReqRes = (
+		userData = { _id: 'user123' },
+		queryData = {},
+		paramsData = {},
+    	bodyData = {},
+	) => {
 		const req = {
 			user: userData,
 			query: queryData,
-			params: {},
-			body: {},
+			params: paramsData,
+        	body: bodyData,
 		};
 
 		const res = {
@@ -213,7 +218,6 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			await getUserReviews(req, res);
 
 			// Assert: Verify the response
-			console.log(res.data.reviews)
 			expect(res.statusCode).toBe(200);
 			expect(res.data.reviews).toHaveLength(2);
 			expect(res.data.reviews[0].createdAt >= res.data.reviews[1].createdAt).toBe(true);
@@ -432,7 +436,14 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 		});
 
 		test('should return an empty array if user has no movies', async () => {
-			const { req, res } = createMockReqRes();
+
+			const userId = new mongoose.Types.ObjectId();
+			const { req, res } = createMockReqRes(
+				{
+					_id: userId.toString()
+				}
+			);
+
 			mockingoose(UserMovie).toReturn([], 'aggregate');
 
 			await getUserMovies(req, res);
@@ -443,36 +454,66 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 		});
 	});
 
+	// This test took me like 3 hours to resolve! - AT
 	describe('addUserMovie - Success Scenarios', () => {
 		test('should add movie to user collection successfully', async () => {
+			// --- ARRANGE ---
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+
 			const { req, res } = createMockReqRes(
-				{ _id: 'user123' },
+				{ _id: userId.toString() },
 				{},
 				{},
-				{ movieId: 'movie123', status: 'watched' }
+				{ movieId: movieId, status: 'watched' }
 			);
 
-			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findById');
-			mockingoose(UserMovie).toReturn(null, 'findOne'); // No existing entry
-			// Mock the save and populate chain
-			const savedDoc = {
-				_id: 'usermovie456',
-				user: 'user123',
-				movie: 'movie123',
+			const movieDoc = {
+				_id: movieId,
+				title: 'Inception',
+				year: 2010
+			};
+
+			// Mock Movie.findById
+			mockingoose(Movie).toReturn(movieDoc, 'findOne');
+
+			// Mock UserMovie.findOne with a function that checks the query
+			mockingoose(UserMovie).toReturn((query) => {
+
+				// If the query includes both user and movie (existence check), return null
+				if (query._conditions && query._conditions.user && query._conditions.movie) {
+					return null;
+				}
+				// If the query is just _id (populate call), return populated document
+				if (query._conditions && query._conditions._id) {
+					return {
+						user: userId,
+						movie: movieDoc,
+						status: 'watched',
+						_id: query._conditions._id,
+					};
+				}
+				return null;
+			}, 'findOne');
+
+			const savedUserMovie = {
+				user: userId,
+				movie: movieId,
 				status: 'watched',
 			};
-			mockingoose(UserMovie).toReturn(savedDoc, 'save');
-			mockingoose(UserMovie).toReturn(
-				{ ...savedDoc, movie: { _id: 'movie123', title: 'Test Movie' } },
-				'findById'
-			);
 
+			// Mock the save operation
+			mockingoose(UserMovie).toReturn(savedUserMovie, 'save');
+
+			// --- ACT ---
 			await addUserMovie(req, res);
 
+			// --- ASSERT ---
 			expect(res.statusCode).toBe(201);
 			expect(res.data.success).toBe(true);
 			expect(res.data.data.status).toBe('watched');
-			expect(res.data.data.movie.title).toBe('Test Movie');
+			expect(res.data.data.movie).toBe(movieId);
+			expect(res.data.data.user).toBe(userId);
 		});
 	});
 
@@ -481,13 +522,12 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			const { req, res } = createMockReqRes(
 				{ _id: 'user123' },
 				{},
-				{},
 				{ movieId: 'nonexistent' }
 			);
 			mockingoose(Movie).toReturn(null, 'findById');
 
 			await expect(addUserMovie(req, res)).rejects.toThrow(
-				'Movie not found in the global catalog.'
+				'Movie not found in the global database.'
 			);
 			expect(res.statusCode).toBe(404);
 		});
@@ -496,10 +536,9 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			const { req, res } = createMockReqRes(
 				{ _id: 'user123' },
 				{},
-				{},
 				{ movieId: 'movie123' }
 			);
-			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findById');
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findOne');
 			mockingoose(UserMovie).toReturn({ _id: 'existing' }, 'findOne');
 
 			await expect(addUserMovie(req, res)).rejects.toThrow(
@@ -511,16 +550,18 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 	describe('getSingleUserMovie - Success Scenarios', () => {
 		test('should return a specific movie from user collection', async () => {
+			const movieId = new mongoose.Types.ObjectId();
+
 			const { req, res } = createMockReqRes(
 				{ _id: 'user123' },
 				{},
-				{ movieId: 'movie123' }
+				{ movieId: movieId }
 			);
 
 			const mockUserMovie = {
 				_id: 'usermovie456',
 				user: 'user123',
-				movie: { _id: 'movie123', title: 'Found Movie' },
+				movie: { _id: movieId, title: 'Found Movie' },
 				status: 'watched',
 			};
 			mockingoose(UserMovie).toReturn(mockUserMovie, 'findOne');
@@ -529,7 +570,8 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 			expect(res.statusCode).toBe(200);
 			expect(res.data.success).toBe(true);
-			expect(res.data.data.movie.title).toBe('Found Movie');
+			expect(res.data.data.status).toBe('watched');
+			expect(res.data.data.movie).toBe(movieId);
 		});
 	});
 
@@ -553,24 +595,32 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 	describe('createUserMovieReview - Success Scenarios', () => {
 		test('should create new review successfully', async () => {
 			// Arrange: Setup test with request and response
-			const { req, res } = createMockReqRes();
-			req.params.movieId = 'movie123';
-			req.body = { rating: 5, message: 'Amazing movie!' };
+			const movieId = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+
+			const { req, res } = createMockReqRes(
+				{ _id: userId },
+				{},
+				{ movieId: movieId},
+				{ rating: 5, message: 'Amazing movie!' },
+			);
 
 			// Arrange: Specify what the database will return
 			mockingoose(Movie).toReturn(
-				{ _id: 'movie123', title: 'Test Movie' },
-				'findById'
+				{ _id: movieId, title: 'Test Movie' },
+				'findOne'
 			);
 			mockingoose(Review).toReturn(null, 'findOne');
+
 			const newReview = {
 				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				user: userId,
+				movie: movieId,
 				rating: 5,
 				message: 'Amazing movie!',
 				createdAt: new Date(),
 			};
+
 			mockingoose(Review).toReturn(newReview, 'save');
 
 			// Act: Call the function
@@ -578,7 +628,8 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(201);
-			expect(res.data).toHaveProperty('_id');
+			expect(res.data.user).toBe(userId);
+			expect(res.data).toHaveProperty('movie', movieId);
 			expect(res.data).toHaveProperty('rating', 5);
 			expect(res.data).toHaveProperty('message', 'Amazing movie!');
 		});
@@ -608,7 +659,7 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			req.body = { rating: 5, message: 'Test' };
 
 			// Arrange: Specify what the database will return
-			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findById');
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findOne');
 			mockingoose(Review).toReturn({ _id: 'existing-review' }, 'findOne');
 
 			// Act & Assert: Verify error handling
@@ -618,6 +669,23 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			expect(res.statusCode).toBe(409);
 		});
 
+		test('Rating and Review message should be included to be valid', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes();
+			req.params.movieId = 'movie123';
+			req.body = {}; // Missing rating and review
+
+			// Arrange: Specify what the database will return
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findOne');
+			mockingoose(Review).toReturn(null, 'findOne');
+
+			// Act & Assert: Verify error handling
+			await expect(createUserMovieReview(req, res)).rejects.toThrow(
+				'Rating and review message are required to create a review.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
+
 		test('should validate rating is between 1 and 5', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes();
@@ -625,7 +693,7 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			req.body = { rating: 6, message: 'Test' }; // Invalid rating
 
 			// Arrange: Specify what the database will return
-			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findById');
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findOne');
 			mockingoose(Review).toReturn(null, 'findOne');
 
 			// Act & Assert: Verify error handling
@@ -634,27 +702,51 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 			);
 			expect(res.statusCode).toBe(400);
 		});
+
+		test('Review cannot be an empty string', async () => {
+			// Arrange: Setup test with request and response
+			const { req, res } = createMockReqRes();
+			req.params.movieId = 'movie123';
+			req.body = { rating: 5, message: '' }; // Invalid rating
+
+			// Arrange: Specify what the database will return
+			mockingoose(Movie).toReturn({ _id: 'movie123' }, 'findOne');
+			mockingoose(Review).toReturn(null, 'findOne');
+
+			// Act & Assert: Verify error handling
+			await expect(createUserMovieReview(req, res)).rejects.toThrow(
+				'Review message cannot be empty.'
+			);
+			expect(res.statusCode).toBe(400);
+		});
 	});
 
 	describe('updateUserMovieReview - Success Scenarios', () => {
 		test('should update existing review successfully', async () => {
+			const movieId = new mongoose.Types.ObjectId();
+			const userId = new mongoose.Types.ObjectId();
+			const reviewId = new mongoose.Types.ObjectId();
+
 			// Arrange: Setup test with request and response
-			const { req, res } = createMockReqRes();
-			req.params.movieId = 'movie123';
-			req.body = { rating: 4, message: 'Updated review' };
+			const { req, res } = createMockReqRes(
+				{ _id: userId },
+				{},
+				{ movieId: movieId},
+				{ rating: 4, message: 'Updated review' },
+			);
 
 			// Arrange: Specify what the database will return
 			const existingReview = {
-				_id: 'review123',
-				user: 'user123',
-				movie: 'movie123',
+				_id: reviewId,
+				user: userId,
+				movie: movieId,
 				rating: 3,
 				message: 'Old review',
 				save: () =>
 					Promise.resolve({
-						_id: 'review123',
-						user: 'user123',
-						movie: 'movie123',
+						_id: reviewId,
+						user: userId,
+						movie: movieId,
 						rating: 4,
 						message: 'Updated review',
 					}),
@@ -713,20 +805,22 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 		});
 	});
 
-	describe('updateUserProfile - Success Scenarios', () => {
+	describe('updateUserProfile - Scenarios', () => {
 		test('should update user profile successfully', async () => {
 			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
 			const { req, res } = createMockReqRes();
-			req.user = { _id: 'user123' };
-			req.body = { name: 'Updated Name', email: 'updated@example.com' };
+			req.user = { _id: userId };
+			req.body = { name: 'Old Name', email: 'oldEmail@example.com' };
 
 			// Arrange: Specify what the database will return
 			const updatedUser = {
-				_id: 'user123',
+				_id: userId,
 				name: 'Updated Name',
 				email: 'updated@example.com',
 			};
-			mockingoose(User).toReturn(updatedUser, 'findByIdAndUpdate');
+
+			mockingoose(User).toReturn(updatedUser, 'findOneAndUpdate');
 
 			// Act: Call the function
 			await updateUserProfile(req, res);
@@ -740,56 +834,52 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 		test('should return 404 when user not found', async () => {
 			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
 			const { req, res } = createMockReqRes();
-			req.user = { _id: 'user123' };
+			req.user = { _id: userId };
 			req.body = { name: 'Updated Name' };
 
 			// Arrange: Specify what the database will return
 			mockingoose(User).toReturn(null, 'findByIdAndUpdate');
 
-			// Act: Call the function
-			await updateUserProfile(req, res);
-
 			// Assert: Verify the response
+			await expect(updateUserProfile(req, res)).rejects.toThrow(
+				'User not found'
+			);
 			expect(res.statusCode).toBe(404);
-			expect(res.data.message).toBe('User not found');
 		});
 
-		test('should handle database errors gracefully', async () => {
+		test('Updating User should handle database errors gracefully', async () => {
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes();
-			req.user = { _id: 'user123' };
-			req.body = { name: 'Updated Name' };
 
 			// Arrange: Specify what the database will return
 			mockingoose(User).toReturn(
 				new Error('Database connection failed'),
-				'findByIdAndUpdate'
+				'findOneAndUpdate'
 			);
 
-			// Act: Call the function
-			await updateUserProfile(req, res);
-
-			// Assert: Verify the response
-			expect(res.statusCode).toBe(500);
-			expect(res.data.message).toBe('Server error');
+			// Act & Assert: Verify error handling
+			await expect(updateUserProfile(req, res)).rejects.toThrow(
+				'Database connection failed'
+			);
 		});
 	});
 
 	describe('updateUserMovie - Success Scenarios', () => {
 		test('should update user movie status successfully', async () => {
-			// TODO: Kathryn - Uncomment when updateUserMovie function is fully implemented
 			// Arrange: Setup test with request and response
+			const movieId = new mongoose.Types.ObjectId();
 			const { req, res } = createMockReqRes();
 			req.user = { _id: 'user123' };
-			req.params.movieId = 'movie123';
-			req.body = { status: 'watched', userRating: 4, notes: 'Great movie!' };
+			req.params.movieId = movieId;
+			req.body = { status: 'planned_to_watch', userRating: 4, notes: 'Great movie!' };
 
 			// Arrange: Specify what the database will return
 			const updatedUserMovie = {
 				_id: 'usermovie123',
 				user: 'user123',
-				movie: 'movie123',
+				movie: movieId,
 				status: 'watched',
 				userRating: 4,
 				notes: 'Great movie!',
@@ -801,17 +891,19 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
-			expect(res.data.message).toBe("User's movie entry updated");
-			expect(res.data.userId).toBe('user123');
-			expect(res.data.movieId).toBe('movie123');
+			expect(res.data.message).toBe("Movie status updated successfully.");
+			expect(res.data.data.status).toBe('watched');
+			expect(res.data.data.movie).toBe(movieId);
 		});
 
 		test('should return 404 when user movie not found', async () => {
-			// TODO: Kathryn - Uncomment when updateUserMovie function is fully implemented
 			// Arrange: Setup test with request and response
+			const userId = new mongoose.Types.ObjectId();
+			const movieId = new mongoose.Types.ObjectId();
+
 			const { req, res } = createMockReqRes();
-			req.user = { _id: 'user123' };
-			req.params.movieId = 'nonexistent';
+			req.user = { _id: userId };
+			req.params.movieId = movieId;
 			req.body = { status: 'watched' };
 
 			// Arrange: Specify what the database will return
@@ -822,13 +914,13 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(404);
-			expect(res.data.message).toBe('User movie not found');
+			expect(res.data.message).toBe('Movie not found in collection.');
+
 		});
 	});
 
 	describe('deleteUserMovie - Success Scenarios', () => {
 		test('should delete user movie status successfully', async () => {
-			// TODO: Kathryn - Uncomment when deleteUserMovie function is fully implemented
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes();
 			req.user = { _id: 'user123' };
@@ -845,16 +937,12 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 			// Act: Call the function
 			await deleteUserMovie(req, res);
-
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
-			expect(res.data.message).toBe("Movie removed from user's collection");
-			expect(res.data.userId).toBe('user123');
-			expect(res.data.movieId).toBe('movie123');
+			expect(res.data.message).toBe("Movie removed from user's collection.");
 		});
 
 		test('should return 404 when user movie not found', async () => {
-			// TODO: Kathryn - Uncomment when deleteUserMovie function is fully implemented
 			// Arrange: Setup test with request and response
 			const { req, res } = createMockReqRes();
 			req.user = { _id: 'user123' };

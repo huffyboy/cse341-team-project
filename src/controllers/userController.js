@@ -15,7 +15,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
 	const updatedUser = await User.findByIdAndUpdate(
 		userId,
-		{ name, email }, // Pass only the fields you want to update
+		{ name, email },
 		{
 			new: true,
 			runValidators: true,
@@ -137,7 +137,7 @@ const addUserMovie = asyncHandler(async (req, res) => {
 	const movieExists = await Movie.findById(movieId);
 	if (!movieExists) {
 		res.status(404);
-		throw new Error('Movie not found in the global database.');
+		throw new Error('Movie not found in the global database.'); // this is NOT referencing the personal movie, it's referencing gloabl DB
 	}
 
 	// Don't want to add twice... let's first ensure it's not already there
@@ -238,7 +238,8 @@ const deleteUserMovie = asyncHandler(async (req, res) => {
 
 	res.status(200).json({
 		success: true,
-		message: 'Movie removed from your collection.',
+		message: 'Movie removed from user\'s collection.',
+		data: deleted,
 	});
 });
 
