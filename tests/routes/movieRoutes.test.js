@@ -382,43 +382,6 @@ describe('Movie Routes - Integration Tests', () => {
 		});
 	});
 
-	// 	test('should update a review and return 200 status', async () => {
-	// 		// Arrange
-	// 		const updateData = { reviewId, rating: 5, message: 'This was an amazing movie!' };
-
-	// 		// This is the document that findById will return.
-	// 		const originalReview = {
-	// 			_id: reviewId,
-	// 			rating: 3,
-	// 			message: 'It was okay.',
-	// 			save: jest.fn(),
-	// 		};
-
-	// 		// This is what the mocked .save() method will return.
-	// 		const updatedReview = {
-	// 			_id: reviewId,
-	// 			rating: 5,
-	// 			message: 'This was an amazing movie!',
-	// 		};
-
-	// 		// 1. We only need ONE findById mock now, for the single call inside the controller.
-	// 		mockingoose(Review).toReturn(originalReview, 'findOne');
-
-	// 		// 2. Mock the .save() instance method.
-	// 		originalReview.save.mockResolvedValue(updatedReview);
-
-	// 		// Act
-	// 		const response = await request(app)
-	// 			.put(`/movies/${movieId}/reviews`)
-	// 			.send(updateData)
-	// 			.expect(200);
-
-	// 		// Assert
-	// 		expect(response.status).toBe(200);
-	// 		expect(response.body.rating).toBe(5);
-	// 		expect(response.body.message).toBe('This was an amazing movie!');
-	// 	});
-
 	// 	test('should return 404 if the review to update is not found', async () => {
 	// 		// Arrange
 	// 		const updateData = {
@@ -480,8 +443,8 @@ describe('Movie Routes - Integration Tests', () => {
 	// 		expect(response.text).toContain('Rating must be a number between 1 and 5.');
 	// 	});
 
-	describe('DELETE /movies/:movieId/reviews', () => {
-		test('should delete review for movie with 200 status', async () => {
-		});
-	});
+	// describe('DELETE /movies/:movieId/reviews', () => {
+	// 	test('should delete review for movie with 200 status', async () => {
+	// 	});
+	// });
 });
