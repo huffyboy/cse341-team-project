@@ -26,10 +26,14 @@ const getMovieReviews = asyncHandler(async (req, res) => {
 // @route   /reviews/:reviewId
 // Update a specific review
 const updateReview = asyncHandler(async (req, res) => {
-	const { reviewId } = req.params;
-	const { rating, message } = req.body;
+	const { movieId } = req.params;
+	const { reviewId , rating, message } = req.body;
 
 	// Validation
+	if (!reviewId) {
+		res.status(400);
+		throw new Error('reviewId is required in the request body.');
+	}
 	if (rating === undefined || message === undefined) {
 		res.status(400);
 		throw new Error('Rating and message are required for updating a review.');
@@ -51,6 +55,11 @@ const updateReview = asyncHandler(async (req, res) => {
 		throw new Error('Review not found.');
 	}
 
+	if (review.movie !== movieId) {
+        res.status(400);
+        throw new Error('Review does not belong to the specified movie.');
+    }
+
 	// Update the review
 	review.rating = rating;
 	review.message = message;
@@ -62,7 +71,12 @@ const updateReview = asyncHandler(async (req, res) => {
 // DELETE /reviews/:reviewId
 // Delete a specific review
 const deleteReview = asyncHandler(async (req, res) => {
-	const { reviewId } = req.params;
+	const { reviewId } = req.body;
+
+	if (!reviewId) {
+		res.status(400);
+		throw new Error('reviewId is required in the request body.');
+	}
 
 	// Find and delete the review
 	const deletedReview = await Review.findByIdAndDelete(reviewId);
