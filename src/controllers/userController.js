@@ -238,7 +238,7 @@ const deleteUserMovie = asyncHandler(async (req, res) => {
 
 	res.status(200).json({
 		success: true,
-		message: 'Movie removed from user\'s collection.',
+		message: "Movie removed from user's collection.",
 		data: deleted,
 	});
 });

@@ -137,24 +137,24 @@ const deleteMovie = asyncHandler(async (req, res) => {
 
 	// Find and delete the movie
 	try {
-        const deletedMovie = await Movie.findByIdAndDelete(movieId);
-        if (!deletedMovie) {
-            res.status(404);
-            throw new Error('Movie not found during deletion');
-        }
+		const deletedMovie = await Movie.findByIdAndDelete(movieId);
+		if (!deletedMovie) {
+			res.status(404);
+			throw new Error('Movie not found during deletion');
+		}
 
-        res.status(200).json({
-            success: true,
-            message: 'Movie deleted successfully',
-            data: {
+		res.status(200).json({
+			success: true,
+			message: 'Movie deleted successfully',
+			data: {
 				id: deletedMovie._id,
-				title: deletedMovie.title
+				title: deletedMovie.title,
 			},
-        });
-    } catch (error) {
-        res.status(500);
-        throw new Error('Database connection failed');
-    }
+		});
+	} catch (error) {
+		res.status(500);
+		throw new Error('Database connection failed');
+	}
 });
 
 export { getAllMovies, getMovieById, createMovie, updateMovie, deleteMovie };

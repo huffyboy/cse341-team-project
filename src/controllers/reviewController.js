@@ -27,7 +27,7 @@ const getMovieReviews = asyncHandler(async (req, res) => {
 // Update a specific review
 const updateReview = asyncHandler(async (req, res) => {
 	const { movieId } = req.params;
-	const { reviewId , rating, message } = req.body;
+	const { reviewId, rating, message } = req.body;
 
 	// Validation
 	if (!reviewId) {
@@ -56,9 +56,9 @@ const updateReview = asyncHandler(async (req, res) => {
 	}
 
 	if (review.movie !== movieId) {
-        res.status(400);
-        throw new Error('Review does not belong to the specified movie.');
-    }
+		res.status(400);
+		throw new Error('Review does not belong to the specified movie.');
+	}
 
 	// Update the review
 	review.rating = rating;

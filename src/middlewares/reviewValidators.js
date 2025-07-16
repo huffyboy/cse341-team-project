@@ -3,9 +3,7 @@ import handleValidationErrors from './validationMiddleware.js';
 
 // Rules for the body of a review (rating, message)
 const reviewBodyValidationRules = [
-	body('reviewId')
-		.isMongoId()
-		.withMessage('Invalid Review ID format in body.'),
+	body('reviewId').isMongoId().withMessage('Invalid Review ID format in body.'),
 	body('rating')
 		.notEmpty()
 		.withMessage('Rating is required.')
