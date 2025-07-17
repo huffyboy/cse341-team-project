@@ -10,8 +10,7 @@ app.use('/reviews', reviewRoutes);
 
 describe('Review Routes - Integration Tests', () => {
 	describe('GET /movies/:movieId/reviews', () => {
-		test.skip('should return all reviews for movie with 200 status', async () => {
-			// TODO: Kathryn - just change "test.skip" to "test" above to enable this test
+		test('should return all reviews for movie with 200 status', async () => {
 			// Act: Make HTTP request to get movie reviews
 			const response = await request(app)
 				.get('/movies/movie123/reviews')

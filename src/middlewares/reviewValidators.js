@@ -3,6 +3,7 @@ import handleValidationErrors from './validationMiddleware.js';
 
 // Rules for the body of a review (rating, message)
 const reviewBodyValidationRules = [
+	body('reviewId').isMongoId().withMessage('Invalid Review ID format in body.'),
 	body('rating')
 		.notEmpty()
 		.withMessage('Rating is required.')
@@ -26,13 +27,14 @@ const reviewIdParamValidationRules = [
 // This might fit better in movieValidators for the routes - but ok here I guess - /movies/:movieId/review
 // For updating/deleting a review by its ID
 export const validateReviewUpdate = [
-	reviewIdParamValidationRules, // Validate :reviewId from param
+	param('movieId').isMongoId().withMessage('Invalid Movie ID format.'),
 	...reviewBodyValidationRules, // Spread body rules
 	handleValidationErrors, // Handle any validation errors
 ];
 
 export const validateReviewId = [
-	reviewIdParamValidationRules,
+	param('movieId').isMongoId().withMessage('Invalid Movie ID format.'),
+	body('reviewId').isMongoId().withMessage('Invalid Review ID format in body.'),
 	handleValidationErrors,
 ];
 
