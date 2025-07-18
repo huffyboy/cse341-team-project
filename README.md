@@ -1,3 +1,7 @@
+[Project Home Page - Render Deployment](https://cse341-team-project-m6fs.onrender.com/)
+
+[Swagger UI Express - API Documentation](https://cse341-team-project-m6fs.onrender.com/api-docs/)
+
 # Movie Tracker
 
 A social movie tracking API that allows users to create and manage their movie collection, add reviews, track their watch status, and share their movie interests with friends.
