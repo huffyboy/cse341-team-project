@@ -4,8 +4,21 @@ import express from 'express';
 import mockingoose from 'mockingoose';
 import mongoose from 'mongoose';	// To create mock auto-generated id hashes
 
-import Review from '../../src/models/Review.js';
 import Movie from '../../src/models/Movie.js';
+
+// Mock the Review model
+const mockReview = {
+	findById: jest.fn(),
+	find: jest.fn(),
+};
+
+await jest.unstable_mockModule('../../src/models/Review.js', () => ({
+	__esModule: true,
+	default: mockReview,
+}));
+
+// Import Review after mocking
+import Review from '../../src/models/Review.js';
 
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
@@ -27,6 +40,13 @@ await jest.unstable_mockModule('../../src/middlewares/movieValidators.js', () =>
   validateMovieCreation: mockValidator,
   validateMovieUpdate: mockValidator,
   validateMovieListQuery: mockValidator,
+}));
+
+// for the review validators
+await jest.unstable_mockModule('../../src/middlewares/reviewValidators.js', () => ({
+  __esModule: true,
+  validateReviewUpdate: mockValidator,
+  validateReviewId: mockValidator,
 }));
 
 // For some reason it wasn't letting me straight import the movieRoutes without adding an await or it was throwing errors
@@ -266,7 +286,7 @@ describe('Movie Routes - Integration Tests', () => {
 			mockingoose(Movie).toReturn(movieToDelete, 'findOne');
 
 			// Mock the `Review.find` check to return an empty array (no reviews).
-			mockingoose(Review).toReturn([], 'find');
+			mockReview.find.mockResolvedValue([]);
 
 			// Mock the final delete call.
 			mockingoose(Movie).toReturn(movieToDelete, 'findOneAndDelete');
@@ -302,7 +322,7 @@ describe('Movie Routes - Integration Tests', () => {
 			mockingoose(Movie).toReturn(movieWithReviews, 'findOne');
 
 			// Mock `Review.find` to return an array with at least one review.
-			mockingoose(Review).toReturn([existingReview], 'find');
+			mockReview.find.mockResolvedValue([existingReview]);
 
 			// Act: Make the HTTP request.
 			const response = await request(app)
@@ -343,29 +363,26 @@ describe('Movie Routes - Integration Tests', () => {
 		test('should update a review and return 200 status', async () => {
 			// Arrange
 			const updateData = {
-				reviewId,
+				reviewId: reviewId.toString(),
 				rating: 5,
 				message: 'This was an amazing movie!'
 			};
 
 			const originalReview = {
-				_id: reviewId,
+				_id: reviewId.toString(), // Use string ID consistently
+				movie: movieId.toString(), // Add the movie ID to match the URL param
 				rating: 3,
 				message: 'It was okay.',
-				save: jest.fn(),
+				save: jest.fn().mockResolvedValue({
+					_id: reviewId.toString(),
+					movie: movieId.toString(),
+					rating: 5,
+					message: 'This was an amazing movie!',
+				}),
 			};
 
-			const updatedReview = {
-				_id: reviewId,
-				rating: 5,
-				message: 'This was an amazing movie!',
-			};
-
-			// Mock findById
-			mockingoose(Review).toReturn(originalReview, 'findOne');
-
-			// Mock the save method
-			originalReview.save.mockResolvedValue(updatedReview);
+			// Mock findById to return the original review
+			mockReview.findById.mockResolvedValue(originalReview);
 
 			// Act
 			const response = await request(app)

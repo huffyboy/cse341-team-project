@@ -445,7 +445,6 @@ describe('User Controller - Behavior and Scenario Testing', () => {
 
 			// Act: Call the function
 			await getUserMovieReview(req, res);
-			console.log(res);
 			// Assert: Verify the response
 			expect(res.statusCode).toBe(200);
 			expect(res.data._id).toBe(reviewId);
