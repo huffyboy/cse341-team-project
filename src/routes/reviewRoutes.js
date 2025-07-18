@@ -1,5 +1,8 @@
 import express from 'express';
-import { updateReview, deleteReview } from '../controllers/reviewController.js';
+import {
+	updateReviewByParams,
+	deleteReviewByParams,
+} from '../controllers/reviewController.js';
 import ensureAuthenticated from '../middlewares/authMiddleware.js';
 import {
 	validateReviewUpdate,
@@ -88,7 +91,7 @@ router.use(ensureAuthenticated);
  */
 router
 	.route('/:reviewId')
-	.put(validateReviewUpdate, updateReview)
-	.delete(validateReviewId, deleteReview);
+	.put(validateReviewUpdate, updateReviewByParams)
+	.delete(validateReviewId, deleteReviewByParams);
 
 export default router;
